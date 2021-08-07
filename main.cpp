@@ -2,7 +2,7 @@
 #include "symbolic.h"
 
 int main() {
-	auto x = NodeRef(new Variable());
+	auto x = NodeRef(newVariable());
 	auto n = 2.0f * x - 2.0f * (x ^ 2);
 
 	std::cout << n << "\n";
@@ -23,7 +23,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto m = new Cosine(new Product(new Constant(2), new Variable()));
+	auto m = new Cosine(newProduct(newConstant(2), newVariable()));
 
 	std::cout << *m << "\n";
   	std::cout << m->evaluate(M_PI) << "\n";
@@ -50,7 +50,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto q = new Power(new Cosine(x.fRef), 2.0f);
+	auto q = new Power(newCosine(x.fRef), 2.0f);
 	std::cout << *q << "\n";
 	std::cout << *q->derive() << "\n";
 	std::cout << *q->derive()->simplify() << "\n";
