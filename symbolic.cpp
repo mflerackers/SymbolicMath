@@ -1,4 +1,5 @@
 #include "symbolic.h"
+#include "symbolic_internal.h"
 
 NodeRef operator+(const NodeRef &left, const NodeRef &right) {
 	return NodeRef(newSum(left.fRef, right.fRef));
@@ -32,6 +33,23 @@ std::ostream &operator<< (std::ostream &stream, const NodeRef &reference) {
 	return reference.fRef->out(stream);
 }
 
+NodeRef variable() {
+	return NodeRef(newVariable());
+}
+
+NodeRef squareroot(const NodeRef &argument) {
+	return NodeRef(newSquareRoot(argument.fRef));
+}
+
+NodeRef cosine(const NodeRef &argument) {
+	return NodeRef(newCosine(argument.fRef));
+}
+
+NodeRef sine(const NodeRef &argument) {
+	return NodeRef(newSine(argument.fRef));
+}
+
+// Constant
 std::shared_ptr<Node> Constant::derive() {
 		return newConstant(0.0f);
 }
@@ -49,6 +67,7 @@ std::ostream &Constant::out(std::ostream &stream) const {
 	return stream;
 }
 
+// Variable
 std::shared_ptr<Node> Variable::derive() {
 	return newConstant(1.0f);
 }
@@ -66,6 +85,7 @@ std::ostream &Variable::out(std::ostream &stream) const {
 	return stream;
 }
 
+// Sum
 std::shared_ptr<Node> Sum::derive() {
 	return newSum(fLeft->derive(), fRight->derive());
 }
@@ -105,6 +125,7 @@ std::ostream &Sum::out(std::ostream &stream) const {
 	return stream;
 }
 
+// Product
 std::shared_ptr<Node> Product::derive() {
 	return newSum(newProduct(fLeft->derive(), fRight), newProduct(fLeft, fRight->derive()));
 }
@@ -182,10 +203,13 @@ std::ostream &Product::out(std::ostream &stream) const {
 	return stream;
 }
 
+
+// Function
 std::shared_ptr<Node> Function::derive() {
 	return newProduct(deriveFunction(fArgument), fArgument->derive());
 }
 
+// Power
 std::shared_ptr<Node> Power::deriveFunction(const std::shared_ptr<Node> &argument) {
 	return newProduct(newConstant(fExponent), newPower(argument, fExponent - 1.0f));
 }
@@ -227,6 +251,7 @@ std::ostream &Power::out(std::ostream &stream) const {
 	return stream;
 }
 
+// Cosine
 std::shared_ptr<Node> Cosine::deriveFunction(const std::shared_ptr<Node> &argument) {
 	return newProduct(newConstant(-1.0f), newSine(argument));
 }
@@ -244,6 +269,7 @@ std::ostream &Cosine::out(std::ostream &stream) const {
 	return stream;
 }
 
+// Sine
 std::shared_ptr<Node> Sine::deriveFunction(const std::shared_ptr<Node> &argument) {
 	return newCosine(argument);
 }
