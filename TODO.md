@@ -2,3 +2,4 @@
 - Evaluate multidimensional functions
 - Simplify until no more simplification is possible
 - Integrals
+- Move internals to private API

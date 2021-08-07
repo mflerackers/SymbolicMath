@@ -78,6 +78,10 @@ inline std::shared_ptr<Variable> newVariable() {
 	return std::make_shared<Variable>();
 }
 
+inline NodeRef variable() {
+	return NodeRef(newVariable());
+}
+
 inline bool isVariable(const std::shared_ptr<Node> &node) {
 	return dynamic_cast<Variable*>(node.get()) != nullptr;
 }
@@ -170,6 +174,14 @@ public:
 	SquareRoot(const std::shared_ptr<Node> &base) : Power(base, 0.5) {}
 };
 
+inline std::shared_ptr<SquareRoot> newSquareRoot(const std::shared_ptr<Node> &argument) {
+	return std::make_shared<SquareRoot>(argument);
+}
+
+inline NodeRef squareroot(const NodeRef &argument) {
+	return NodeRef(newSquareRoot(argument.fRef));
+}
+
 class Cosine : public Function, public std::enable_shared_from_this<Cosine> {
 public:
 	Cosine(const std::shared_ptr<Node> &argument) :
@@ -185,6 +197,10 @@ inline std::shared_ptr<Cosine> newCosine(const std::shared_ptr<Node> &argument) 
 	return std::make_shared<Cosine>(argument);
 }
 
+inline NodeRef cosine(const NodeRef &argument) {
+	return NodeRef(newCosine(argument.fRef));
+}
+
 class Sine : public Function, public std::enable_shared_from_this<Sine> {
 public:
 	Sine(const std::shared_ptr<Node> &argument) :
@@ -198,4 +214,8 @@ public:
 
 inline std::shared_ptr<Sine> newSine(const std::shared_ptr<Node> &argument) {
 	return std::make_shared<Sine>(argument);
+}
+
+inline NodeRef sine(const NodeRef &argument) {
+	return NodeRef(newSine(argument.fRef));
 }

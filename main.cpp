@@ -2,7 +2,7 @@
 #include "symbolic.h"
 
 int main() {
-	auto x = NodeRef(newVariable());
+	auto x = variable();
 	auto n = 2.0f * x - 2.0f * (x ^ 2);
 
 	std::cout << "expression " << n << "\n";
@@ -22,7 +22,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto m = NodeRef(newCosine(newProduct(newConstant(2), newVariable())));
+	auto m = cosine(2 * x);
 
 	std::cout << "expression " << m << "\n";
   	std::cout << "evaluation x=pi " << m.evaluate(M_PI) << "\n";
@@ -41,7 +41,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto p = x^3;
+	auto p = x ^ 3;
 	std::cout << "expression " << p << "\n";
   	std::cout << "evaluation x=3 " << p.evaluate(3) << "\n";
 	auto dp = p.derive();
@@ -53,7 +53,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto q = NodeRef(newPower(newCosine(x.fRef), 2.0f));
+	auto q = cosine(x) ^ 2;
 	std::cout << "expression " << q << "\n";
 	auto dq = q.derive();
 	std::cout << "derivative " << dq << "\n";
@@ -87,4 +87,16 @@ int main() {
 	ds = ds.simplify();
 	std::cout << ds << "\n";
 	ds = ds.simplify();
+	std::cout << ds << "\n";
+
+	std::cout << "<------>\n";
+
+	// This needs fractions to work correctly
+	auto t = squareroot(x);
+	std::cout << "expression " << t << "\n";
+	auto dt = t.derive();
+	std::cout << "derivative " << dt << "\n";
+	std::cout << "simplify\n";
+	dt = dt.simplify();
+	std::cout << dt << "\n";
 }
