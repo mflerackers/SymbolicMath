@@ -194,12 +194,17 @@ std::ostream &Product::out(std::ostream &stream) const {
 			return stream;
 		}
 		// n * x = nx
-		else if (isVariable(fRight) || isFunction(fRight)) {
+		else if (isVariable(fRight)) {
 			stream << *fLeft << *fRight;
 			return stream;
 		}
+		// n * f(x) = n*f(x)
+		else if (isFunction(fRight)) {
+			stream << *fLeft << "*" << *fRight;
+			return stream;
+		}
 	}
-	stream << "(" << *fLeft << " * " << *fRight << ")";
+	stream << "(" << *fLeft << "*" << *fRight << ")";
 	return stream;
 }
 
