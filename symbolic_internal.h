@@ -98,21 +98,24 @@ inline bool isFunction(const std::shared_ptr<Node> &node) {
 	return dynamic_cast<Function*>(node.get()) != nullptr;
 }
 
-class Power : public Function, public std::enable_shared_from_this<Power> {
+class Power : /*public Function, */public Node, public std::enable_shared_from_this<Power> {
 public:
-	Power(const std::shared_ptr<Node> &base, float exponent) :
-	Function(base),
+	Power(const std::shared_ptr<Node> &base, const std::shared_ptr<Node> &exponent) :
+	//Function(base),
+	fBase(base),
 	fExponent(exponent) {}
 
-	std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument) override;
+	//std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument) override;
+	std::shared_ptr<Node> derive() override;
 	float evaluate(float x) override;
 	std::shared_ptr<Node> simplify() override;
 	std::ostream &out(std::ostream &stream) const override;
 
-	float fExponent{0.0f};
+	std::shared_ptr<Node> fBase;
+	std::shared_ptr<Node> fExponent;
 };
 
-inline std::shared_ptr<Power> newPower(const std::shared_ptr<Node> &base, float exponent) {
+inline std::shared_ptr<Power> newPower(const std::shared_ptr<Node> &base, const std::shared_ptr<Node> &exponent) {
 	return std::make_shared<Power>(base, exponent);
 }
 
@@ -122,11 +125,29 @@ inline bool isPower(const std::shared_ptr<Node> &node) {
 
 class SquareRoot : public Power {
 public:
-	SquareRoot(const std::shared_ptr<Node> &base) : Power(base, 0.5) {}
+	SquareRoot(const std::shared_ptr<Node> &base) : Power(base, newConstant(0.5f)) {}
 };
 
 inline std::shared_ptr<SquareRoot> newSquareRoot(const std::shared_ptr<Node> &argument) {
 	return std::make_shared<SquareRoot>(argument);
+}
+
+class NaturalLogarithm : public Function, public std::enable_shared_from_this<NaturalLogarithm> {
+public:
+	NaturalLogarithm(const std::shared_ptr<Node> &argument) :
+	Function(argument),
+	fArgument(argument) {}
+
+	std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument) override;
+	float evaluate(float x) override;
+	std::shared_ptr<Node> simplify() override;
+	std::ostream &out(std::ostream &stream) const override;
+
+	std::shared_ptr<Node> fArgument;
+};
+
+inline std::shared_ptr<NaturalLogarithm> newNaturalLogarithm(const std::shared_ptr<Node> &argument) {
+	return std::make_shared<NaturalLogarithm>(argument);
 }
 
 class Cosine : public Function, public std::enable_shared_from_this<Cosine> {

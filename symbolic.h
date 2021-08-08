@@ -38,12 +38,15 @@ public:
 	friend NodeRef operator/(float left, const NodeRef &right);
 	friend NodeRef operator/(const NodeRef &left, const NodeRef &right);
 	friend NodeRef operator^(const NodeRef &base, float exponent);
+	friend NodeRef operator^(float base, const NodeRef &exponent);
+	friend NodeRef operator^(const NodeRef &base, const NodeRef &exponent);
 	friend std::ostream &operator<< (std::ostream &stream, const NodeRef &node);
 
 	std::shared_ptr<Node> fRef;
 };
 
 NodeRef variable();
-NodeRef squareroot(const NodeRef &argument);
-NodeRef cosine(const NodeRef &argument);
-NodeRef sine(const NodeRef &argument);
+NodeRef sqrt(const NodeRef &argument);
+NodeRef ln(const NodeRef &argument);
+NodeRef cos(const NodeRef &argument);
+NodeRef sin(const NodeRef &argument);

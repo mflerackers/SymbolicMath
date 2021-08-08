@@ -18,15 +18,23 @@ NodeRef operator*(const NodeRef &left, const NodeRef &right) {
 }
 
 NodeRef operator/(float left, const NodeRef &right) {
-	return NodeRef(newProduct(newConstant(left), newPower(right.fRef, -1.0f)));
+	return NodeRef(newProduct(newConstant(left), newPower(right.fRef, newConstant(-1.0f))));
 }
 
 NodeRef operator/(const NodeRef &left, const NodeRef &right) {
-	return NodeRef(newProduct(left.fRef, newPower(right.fRef, -1.0f)));
+	return NodeRef(newProduct(left.fRef, newPower(right.fRef, newConstant(-1.0f))));
 }
 
 NodeRef operator^(const NodeRef &base, float exponent) {
-	return NodeRef(newPower(base.fRef, exponent));
+	return NodeRef(newPower(base.fRef, newConstant(exponent)));
+}
+
+NodeRef operator^(float base, const NodeRef &exponent) {
+	return NodeRef(newPower(newConstant(base), exponent.fRef));
+}
+
+NodeRef operator^(const NodeRef &base, const NodeRef &exponent) {
+	return NodeRef(newPower(base.fRef, exponent.fRef));
 }
 
 std::ostream &operator<< (std::ostream &stream, const NodeRef &reference) {
@@ -37,19 +45,26 @@ NodeRef variable() {
 	return NodeRef(newVariable());
 }
 
-NodeRef squareroot(const NodeRef &argument) {
+NodeRef sqrt(const NodeRef &argument) {
 	return NodeRef(newSquareRoot(argument.fRef));
 }
 
-NodeRef cosine(const NodeRef &argument) {
+NodeRef ln(const NodeRef &argument) {
+	return NodeRef(newNaturalLogarithm(argument.fRef));
+}
+
+NodeRef cos(const NodeRef &argument) {
 	return NodeRef(newCosine(argument.fRef));
 }
 
-NodeRef sine(const NodeRef &argument) {
+NodeRef sin(const NodeRef &argument) {
 	return NodeRef(newSine(argument.fRef));
 }
 
 // Constant
+/* 
+	The derivative of a constant is zero
+*/
 std::shared_ptr<Node> Constant::derive() {
 		return newConstant(0.0f);
 }
@@ -68,6 +83,9 @@ std::ostream &Constant::out(std::ostream &stream) const {
 }
 
 // Variable
+/* 
+	The derivative of a variable is one
+*/
 std::shared_ptr<Node> Variable::derive() {
 	return newConstant(1.0f);
 }
@@ -86,6 +104,10 @@ std::ostream &Variable::out(std::ostream &stream) const {
 }
 
 // Sum
+/* 
+	The derivative of a sum is the sum of the derivatives
+	(a + b)' = a' + b'
+*/
 std::shared_ptr<Node> Sum::derive() {
 	return newSum(fLeft->derive(), fRight->derive());
 }
@@ -126,6 +148,10 @@ std::ostream &Sum::out(std::ostream &stream) const {
 }
 
 // Product
+/* 
+	The derivative of a product is
+	(a * b)' = a' * b + a * b'
+*/
 std::shared_ptr<Node> Product::derive() {
 	return newSum(newProduct(fLeft->derive(), fRight), newProduct(fLeft, fRight->derive()));
 }
@@ -164,7 +190,7 @@ std::shared_ptr<Node> Product::simplify() {
 		}
 	}
 	if (isVariable(fLeft) && isVariable(fRight)) {
-		return newPower(fLeft, 2.0f);
+		return newPower(fLeft, newConstant(2.0f));
 	}
 	if (isProduct(fLeft) && isProduct(fRight)) {
 		auto productLeft = dynamic_cast<Product*>(fLeft.get());
@@ -215,44 +241,82 @@ std::shared_ptr<Node> Function::derive() {
 }
 
 // Power
-std::shared_ptr<Node> Power::deriveFunction(const std::shared_ptr<Node> &argument) {
-	return newProduct(newConstant(fExponent), newPower(argument, fExponent - 1.0f));
+/* 
+	The derivative of a power is
+	(b ^ e)' = (b ^ e) * (e' * ln(b) + e * (ln(b))')
+	If e is a constant this becomes
+	(b ^ c)' = (b ^ c) * (0 * ln(b) + c * 1 / b) = c * b ^ (c - 1)
+	If b is a constant and e is x this becomes
+	(c ^ x)' = (c ^ e) * (1 * ln(c) + x * 0) = ln(c) * (c ^ x)
+*/
+std::shared_ptr<Node> Power::derive() {
+	// Specialized for constant exponent since simplification is still lacking
+	if (isConstant(fExponent)) {
+		auto exponent = dynamic_cast<Constant*>(fExponent.get())->fValue;
+		return newProduct(newProduct(newConstant(exponent), newPower(fBase, newConstant(exponent - 1.0f))), fBase->derive());
+	}
+	// Specialized for constant base since simplification is still lacking
+	else if (isConstant(fBase)) {
+		auto base = dynamic_cast<Constant*>(fBase.get())->fValue;
+		return newProduct(shared_from_this(), newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)), newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
+	}
+	return newProduct(shared_from_this(), newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)), newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
 }
 
 float Power::evaluate(float x) {
-	return powf(fArgument->evaluate(x), fExponent);
+	return powf(fBase->evaluate(x), fExponent->evaluate(x));
 }
 
 std::shared_ptr<Node> Power::simplify() {
-	if (fExponent == 1) {
-		return fArgument->simplify();
+	if (isConstant(fExponent) && dynamic_cast<Constant*>(fExponent.get())->fValue == 1) {
+		return fBase->simplify();
 	}
 	return shared_from_this();
 }
 
 std::ostream &Power::out(std::ostream &stream) const {
-	float exponent = std::abs(fExponent);
-	if (fExponent < 0) {
-		stream << "1/(";
-	}
-	if (exponent == 0.5f) {
-		stream << "√(" << *fArgument << ")";
-	}
-	else if (exponent == 1.0f) {
-		stream << *fArgument;
-	}
-	else if (exponent == 2.0f) {
-		stream << "(" << *fArgument << ")²";
-	}
-	else if (exponent == 3.0f) {
-		stream << "(" << *fArgument << ")³";
+	if (isConstant(fExponent)) {
+		float exponent = dynamic_cast<Constant*>(fExponent.get())->fValue;
+		float absExponent = std::abs(exponent);
+		if (exponent < 0) {
+			stream << "1/(";
+		}
+		if (absExponent == 0.5f) {
+			stream << "√(" << *fBase << ")";
+		}
+		else if (absExponent == 1.0f) {
+			stream << *fBase;
+		}
+		else if (absExponent == 2.0f) {
+			stream << "(" << *fBase << ")²";
+		}
+		else if (absExponent == 3.0f) {
+			stream << "(" << *fBase << ")³";
+		}
+		if (exponent < 0) {
+			stream << ")";
+		}
 	}
 	else {
-		stream << "(" << *fArgument << " ^ " << exponent << ")";
+		stream << "(" << *fBase << " ^ " << *fExponent << ")";
 	}
-	if (fExponent < 0) {
-		stream << ")";
-	}
+	return stream;
+}
+
+std::shared_ptr<Node> NaturalLogarithm::deriveFunction(const std::shared_ptr<Node> &argument) {
+	return newPower(argument, newConstant(-1.0f));
+}
+
+float NaturalLogarithm::evaluate(float x) {
+	return log(x);
+}
+
+std::shared_ptr<Node> NaturalLogarithm::simplify() {
+	return shared_from_this();
+}
+
+std::ostream &NaturalLogarithm::out(std::ostream &stream) const {
+	stream << "ln(" << *fArgument << ")";
 	return stream;
 }
 

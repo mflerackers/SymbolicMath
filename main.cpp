@@ -22,7 +22,7 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	auto m = cosine(2 * x);
+	auto m = cos(2 * x);
 
 	std::cout << "expression " << m << "\n";
   	std::cout << "evaluation x=pi " << m.evaluate(M_PI) << "\n";
@@ -49,11 +49,17 @@ int main() {
 	std::cout << "simplify\n";
 	dp = dp.simplify();
 	std::cout << dp << "\n";
+	dp = dp.simplify();
+	std::cout << dp << "\n";
+	dp = dp.simplify();
+	std::cout << dp << "\n";
+	dp = dp.simplify();
+	std::cout << dp << "\n";
 	std::cout << "evaluation x=3 " << dp.evaluate(3) << "\n";
 
 	std::cout << "<------>\n";
 
-	auto q = cosine(x) ^ 2;
+	auto q = cos(x) ^ 2;
 	std::cout << "expression " << q << "\n";
 	auto dq = q.derive();
 	std::cout << "derivative " << dq << "\n";
@@ -91,12 +97,41 @@ int main() {
 
 	std::cout << "<------>\n";
 
-	// This needs fractions to work correctly
-	auto t = squareroot(x);
+	auto t = sqrt(x);
 	std::cout << "expression " << t << "\n";
 	auto dt = t.derive();
 	std::cout << "derivative " << dt << "\n";
 	std::cout << "simplify\n";
 	dt = dt.simplify();
 	std::cout << dt << "\n";
+
+	std::cout << "<------>\n";
+
+	auto u = ln(x);
+	std::cout << "expression " << u << "\n";
+	auto du = u.derive();
+	std::cout << "derivative " << du << "\n";
+	std::cout << "simplify\n";
+	du = du.simplify();
+	std::cout << du << "\n";
+
+	auto v = 3 ^ x;
+	std::cout << "expression " << v << "\n";
+  	std::cout << "evaluation x=3 " << v.evaluate(3) << "\n";
+	auto dv = v.derive();
+	std::cout << "derivative " << dv << "\n";
+	std::cout << "simplify\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
+	std::cout << "evaluation x=3 " << dv.evaluate(3) << "\n";
+
+	std::cout << "<------>\n";
 }
