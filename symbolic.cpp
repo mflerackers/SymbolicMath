@@ -41,6 +41,10 @@ std::ostream &operator<< (std::ostream &stream, const NodeRef &reference) {
 	return reference.fRef->out(stream);
 }
 
+bool operator==(const NodeRef &left, const NodeRef &right) {
+	return left.fRef->equals(right.fRef);
+}
+
 NodeRef variable() {
 	return NodeRef(newVariable());
 }
@@ -82,6 +86,11 @@ std::ostream &Constant::out(std::ostream &stream) const {
 	return stream;
 }
 
+bool Constant::equals(const std::shared_ptr<Node> &other) const {
+	auto constant = toConstant(other);
+	return constant && constant->fValue == fValue;
+}
+
 // Variable
 /* 
 	The derivative of a variable is one
@@ -103,6 +112,11 @@ std::ostream &Variable::out(std::ostream &stream) const {
 	return stream;
 }
 
+bool Variable::equals(const std::shared_ptr<Node> &other) const {
+	auto variable = toVariable(other);
+	return variable != nullptr;
+}
+
 // Sum
 /* 
 	The derivative of a sum is the sum of the derivatives
@@ -118,10 +132,10 @@ float Sum::evaluate(float x) {
 
 std::shared_ptr<Node> Sum::simplify() {
 	if (isConstant(fLeft)) {
-		auto left = dynamic_cast<Constant*>(fLeft.get());
+		auto left = toConstant(fLeft);
 		// n + m = p
 		if (isConstant(fRight)) {
-			auto right = dynamic_cast<Constant*>(fRight.get());
+			auto right = toConstant(fRight);
 			return newConstant(left->fValue + right->fValue);
 		}
 		// 0 + n = n
@@ -130,14 +144,35 @@ std::shared_ptr<Node> Sum::simplify() {
 		}
 	}
 	else if (isConstant(fRight)) {
-		auto right = dynamic_cast<Constant*>(fRight.get());
+		auto right = toConstant(fRight);
 		// n + 0 = n
 		if (right->fValue == 0.0f) {
 			return fLeft->simplify();
 		}
 	}
 	else if (isVariable(fLeft) && isVariable(fRight)) {
-		return newProduct(newConstant(2.0f), newVariable());
+		// x + x = 2 * x
+		return newProduct(newConstant(2.0f), fRight);
+	}
+	else if (isProduct(fLeft) && isProduct(fRight)) {
+		auto left = toProduct(fLeft);
+		auto right = toProduct(fRight);
+		if (isConstant(left->fLeft) && isConstant(right->fLeft) &&
+			isVariable(left->fRight) && left->fRight->equals(right->fRight)) {
+			// (n * x) + (m * x) = (n * m) * x
+			return newProduct(newConstant(toConstant(left->fLeft)->fValue + toConstant(right->fLeft)->fValue), left->fRight);
+		}
+	}
+	else if (isPower(fLeft) && isPower(fRight)) {
+		auto left = toPower(fLeft);
+		auto right = toPower(fRight);
+		if (isConstant(left->fExponent) && isConstant(right->fExponent) &&
+			isVariable(left->fBase) && isVariable(right->fBase)) {
+			if (toConstant(left->fExponent)->fValue == toConstant(right->fExponent)->fValue) {
+				// (x ^ n) + (x ^ n) = 2 * (x ^ n)
+				return newProduct(newConstant(2), fLeft);
+			}
+		}
 	}
 	return newSum(fLeft->simplify(), fRight->simplify());
 }
@@ -145,6 +180,11 @@ std::shared_ptr<Node> Sum::simplify() {
 std::ostream &Sum::out(std::ostream &stream) const {
 	stream << "(" << *fLeft << " + " << *fRight << ")";
 	return stream;
+}
+
+bool Sum::equals(const std::shared_ptr<Node> &other) const {
+	auto sum = toSum(other);
+	return sum && sum->fLeft->equals(fLeft) && sum->fRight->equals(fRight);
 }
 
 // Product
@@ -166,7 +206,7 @@ std::shared_ptr<Node> Product::simplify() {
 		return newProduct(fRight, fLeft);
 	}
 	if (isConstant(fLeft)) {
-		auto left = dynamic_cast<Constant*>(fLeft.get());
+		auto left = toConstant(fLeft);
 		// 0 * n = 0
 		if (left->fValue == 0.0f) {
 			return newConstant(0.0f);
@@ -177,63 +217,54 @@ std::shared_ptr<Node> Product::simplify() {
 		}
 		// n * m = p
 		else if (isConstant(fRight)) {
-			auto right = dynamic_cast<Constant*>(fRight.get());
+			auto right = toConstant(fRight);
 			return newConstant(left->fValue * right->fValue);
 		}
 		else if (isProduct(fRight)) {
-			auto product = dynamic_cast<Product*>(fRight.get());
+			auto product = toProduct(fRight);
 			// n * (m * x) = n*m * x
 			if (isConstant(product->fLeft)) {
-				auto pleft = dynamic_cast<Constant*>(product->fLeft.get());
+				auto pleft = toConstant(product->fLeft);
 				return newProduct(newConstant(left->fValue * pleft->fValue), product->fRight);
 			}
 		}
 	}
-	if (isVariable(fLeft) && isVariable(fRight)) {
+	if (fLeft->equals(fRight)) {
+		// (x * x) = x ^ 2
 		return newPower(fLeft, newConstant(2.0f));
 	}
 	if (isProduct(fLeft) && isProduct(fRight)) {
-		auto productLeft = dynamic_cast<Product*>(fLeft.get());
-		auto productRight = dynamic_cast<Product*>(fRight.get());
+		auto productLeft = toProduct(fLeft);
+		auto productRight = toProduct(fRight);
 		// (n * x) * (m * y) = n*m * (x * y)
 		if (isConstant(productLeft->fLeft) && isConstant(productRight->fLeft)) {
-			auto left = dynamic_cast<Constant*>(productLeft->fLeft.get());
-			auto right = dynamic_cast<Constant*>(productRight->fLeft.get());
+			auto left = toConstant(productLeft->fLeft);
+			auto right = toConstant(productRight->fLeft);
 			return newProduct(newConstant(left->fValue * right->fValue),
 				newProduct(productLeft->fRight, productRight->fRight));
+		}
+	}
+	else if (isPower(fLeft) && isPower(fRight)) {
+		auto left = toPower(fLeft);
+		auto right = toPower(fRight);
+		if (isConstant(left->fExponent) && isConstant(right->fExponent) &&
+			isVariable(left->fBase) && left->fBase->equals(right->fBase)) {
+			// (x ^ n) * (x ^ m) = x ^ (n + m)
+			return newPower(left->fBase, newConstant(toConstant(left->fExponent)->fValue + toConstant(right->fExponent)->fValue));
 		}
 	}
 	return newProduct(fLeft->simplify(), fRight->simplify());
 }
 
 std::ostream &Product::out(std::ostream &stream) const {
-	if (dynamic_cast<Constant*>(fLeft.get())) {
-		auto left = dynamic_cast<Constant*>(fLeft.get());
-		// -1 * n = -n
-		if (left->fValue == -1.0f) {
-			stream << "-" << *fRight;
-			return stream;
-		}
-		// 1 * n = n
-		else if (left->fValue == 1.0f) {
-			stream << *fRight;
-			return stream;
-		}
-		// n * x = nx
-		else if (isVariable(fRight)) {
-			stream << *fLeft << *fRight;
-			return stream;
-		}
-		// n * f(x) = n*f(x)
-		else if (isFunction(fRight)) {
-			stream << *fLeft << "*" << *fRight;
-			return stream;
-		}
-	}
-	stream << "(" << *fLeft << "*" << *fRight << ")";
+	stream << "(" << *fLeft << " * " << *fRight << ")";
 	return stream;
 }
 
+bool Product::equals(const std::shared_ptr<Node> &other) const {
+	auto product = toProduct(other);
+	return product && product->fLeft->equals(fLeft) && product->fRight->equals(fRight);
+}
 
 // Function
 std::shared_ptr<Node> Function::derive() {
@@ -252,12 +283,12 @@ std::shared_ptr<Node> Function::derive() {
 std::shared_ptr<Node> Power::derive() {
 	// Specialized for constant exponent since simplification is still lacking
 	if (isConstant(fExponent)) {
-		auto exponent = dynamic_cast<Constant*>(fExponent.get())->fValue;
+		auto exponent = toConstant(fExponent)->fValue;
 		return newProduct(newProduct(newConstant(exponent), newPower(fBase, newConstant(exponent - 1.0f))), fBase->derive());
 	}
 	// Specialized for constant base since simplification is still lacking
 	else if (isConstant(fBase)) {
-		auto base = dynamic_cast<Constant*>(fBase.get())->fValue;
+		auto base = toConstant(fBase)->fValue;
 		return newProduct(shared_from_this(), newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)), newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
 	}
 	return newProduct(shared_from_this(), newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)), newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
@@ -268,14 +299,14 @@ float Power::evaluate(float x) {
 }
 
 std::shared_ptr<Node> Power::simplify() {
-	if (isConstant(fExponent) && dynamic_cast<Constant*>(fExponent.get())->fValue == 1) {
+	if (isConstant(fExponent) && toConstant(fExponent)->fValue == 1) {
 		return fBase->simplify();
 	}
 	return shared_from_this();
 }
 
 std::ostream &Power::out(std::ostream &stream) const {
-	if (isConstant(fExponent)) {
+	/*if (isConstant(fExponent)) {
 		float exponent = dynamic_cast<Constant*>(fExponent.get())->fValue;
 		float absExponent = std::abs(exponent);
 		if (exponent < 0) {
@@ -297,10 +328,15 @@ std::ostream &Power::out(std::ostream &stream) const {
 			stream << ")";
 		}
 	}
-	else {
+	else {*/
 		stream << "(" << *fBase << " ^ " << *fExponent << ")";
-	}
+	//}
 	return stream;
+}
+
+bool Power::equals(const std::shared_ptr<Node> &other) const {
+	auto power = toPower(other);
+	return power && power->fBase->equals(fBase) && power->fExponent->equals(fExponent);
 }
 
 std::shared_ptr<Node> NaturalLogarithm::deriveFunction(const std::shared_ptr<Node> &argument) {
@@ -318,6 +354,10 @@ std::shared_ptr<Node> NaturalLogarithm::simplify() {
 std::ostream &NaturalLogarithm::out(std::ostream &stream) const {
 	stream << "ln(" << *fArgument << ")";
 	return stream;
+}
+
+bool NaturalLogarithm::equals(const std::shared_ptr<Node> &other) const {
+	return equalsHelper<NaturalLogarithm>(other);
 }
 
 // Cosine
@@ -338,6 +378,10 @@ std::ostream &Cosine::out(std::ostream &stream) const {
 	return stream;
 }
 
+bool Cosine::equals(const std::shared_ptr<Node> &other) const {
+	return equalsHelper<Cosine>(other);
+}
+
 // Sine
 std::shared_ptr<Node> Sine::deriveFunction(const std::shared_ptr<Node> &argument) {
 	return newCosine(argument);
@@ -354,4 +398,8 @@ std::shared_ptr<Node> Sine::simplify() {
 std::ostream &Sine::out(std::ostream &stream) const {
 	stream << "sin(" << *fArgument << ")";
 	return stream;
+}
+
+bool Sine::equals(const std::shared_ptr<Node> &other) const {
+	return equalsHelper<Sine>(other);
 }

@@ -1,6 +1,44 @@
 
 #include "symbolic.h"
 
+void simplificationTests() {
+	auto x = variable();
+	
+	auto n = 2.0f * x + 3.0f * x;
+	std::cout << "expression " << n << "\n";
+  	std::cout << "simplify\n";
+	n = n.simplify();
+	std::cout << n << "\n";
+
+	std::cout << "<------>\n";
+
+	auto o = (2.0f * x) * (3.0f * x);
+	std::cout << "expression " << o << "\n";
+  	std::cout << "simplify\n";
+	o = o.simplify();
+	std::cout << o << "\n";
+	o = o.simplify();
+	std::cout << o << "\n";
+
+	std::cout << "<------>\n";
+
+	auto p = (x ^ 2) + (x ^ 2);
+	std::cout << "expression " << p << "\n";
+  	std::cout << "simplify\n";
+	p = p.simplify();
+	std::cout << p << "\n";
+
+	std::cout << "<------>\n";
+
+	auto q = (x ^ 2) * (x ^ 2);
+	std::cout << "expression " << q << "\n";
+  	std::cout << "simplify\n";
+	q = q.simplify();
+	std::cout << q << "\n";
+
+	std::cout << "<------>\n";
+}
+
 int main() {
 	auto x = variable();
 	auto n = 2.0f * x - 2.0f * (x ^ 2);
@@ -115,6 +153,8 @@ int main() {
 	du = du.simplify();
 	std::cout << du << "\n";
 
+	std::cout << "<------>\n";
+
 	auto v = 3 ^ x;
 	std::cout << "expression " << v << "\n";
   	std::cout << "evaluation x=3 " << v.evaluate(3) << "\n";
@@ -134,4 +174,26 @@ int main() {
 	std::cout << "evaluation x=3 " << dv.evaluate(3) << "\n";
 
 	std::cout << "<------>\n";
+
+	auto w = x ^ x;
+	std::cout << "expression " << w << "\n";
+  	std::cout << "evaluation x=3 " << w.evaluate(3) << "\n";
+	auto dw = w.derive();
+	std::cout << "derivative " << dw << "\n";
+	std::cout << "simplify\n";
+	dw = dw.simplify();
+	std::cout << dw << "\n";
+	dw = dw.simplify();
+	std::cout << dw << "\n";
+	dw = dw.simplify();
+	std::cout << dw << "\n";
+	dw = dw.simplify();
+	std::cout << dw << "\n";
+	dw = dw.simplify();
+	std::cout << dw << "\n";
+	std::cout << "evaluation x=3 " << dw.evaluate(3) << "\n";
+
+	std::cout << "<------>\n";
+
+	simplificationTests();
 }

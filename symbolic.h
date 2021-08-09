@@ -8,6 +8,7 @@ public:
 	virtual float evaluate(float x) = 0;
 	virtual std::shared_ptr<Node> simplify() = 0;
 	virtual std::ostream &out(std::ostream &stream) const = 0;
+	virtual bool equals(const std::shared_ptr<Node> &other) const {return false;}
 };
 
 inline std::ostream &operator<< (std::ostream &stream, Node &node) {
@@ -41,6 +42,7 @@ public:
 	friend NodeRef operator^(float base, const NodeRef &exponent);
 	friend NodeRef operator^(const NodeRef &base, const NodeRef &exponent);
 	friend std::ostream &operator<< (std::ostream &stream, const NodeRef &node);
+	friend bool operator==(const NodeRef &left, const NodeRef &right);
 
 	std::shared_ptr<Node> fRef;
 };
