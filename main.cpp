@@ -35,6 +35,10 @@ void simplificationTests() {
   	std::cout << "simplify\n";
 	q = q.simplify();
 	std::cout << q << "\n";
+	q = q.simplify();
+	std::cout << q << "\n";
+	q = q.simplify();
+	std::cout << q << "\n";
 
 	std::cout << "<------>\n";
 }
@@ -48,6 +52,8 @@ int main() {
 	auto dn = n.derive();
 	std::cout << "derivative " << dn << "\n";
 	std::cout << "simplify\n";
+	dn = dn.simplify();
+	std::cout << dn << "\n";
 	dn = dn.simplify();
 	std::cout << dn << "\n";
 	dn = dn.simplify();
@@ -85,10 +91,6 @@ int main() {
 	auto dp = p.derive();
 	std::cout << "derivative " << dp << "\n";
 	std::cout << "simplify\n";
-	dp = dp.simplify();
-	std::cout << dp << "\n";
-	dp = dp.simplify();
-	std::cout << dp << "\n";
 	dp = dp.simplify();
 	std::cout << dp << "\n";
 	dp = dp.simplify();
@@ -161,6 +163,8 @@ int main() {
 	auto dv = v.derive();
 	std::cout << "derivative " << dv << "\n";
 	std::cout << "simplify\n";
+	dv = dv.simplify();
+	std::cout << dv << "\n";
 	dv = dv.simplify();
 	std::cout << dv << "\n";
 	dv = dv.simplify();

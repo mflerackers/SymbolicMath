@@ -131,47 +131,35 @@ float Sum::evaluate(float x) {
 }
 
 std::shared_ptr<Node> Sum::simplify() {
-	if (isConstant(fLeft)) {
-		auto left = toConstant(fLeft);
-		// n + m = p
-		if (isConstant(fRight)) {
-			auto right = toConstant(fRight);
+	if (isConstant(fRight)) {
+		auto right = toConstant(fRight);
+		if (isConstant(fLeft)) {
+			auto left = toConstant(fLeft);
+			// n + m = p
 			return newConstant(left->fValue + right->fValue);
 		}
-		// 0 + n = n
-		else if (left->fValue == 0.0f) {
+		else {
+			return newSum(fRight->simplify(), fLeft->simplify());
+		}
+	}
+	if (isConstant(fLeft)) {
+		auto left = toConstant(fLeft);
+		if (left->fValue == 0.0f) {
+			// 0 + n = n
 			return fRight->simplify();
 		}
 	}
-	else if (isConstant(fRight)) {
-		auto right = toConstant(fRight);
-		// n + 0 = n
-		if (right->fValue == 0.0f) {
-			return fLeft->simplify();
-		}
-	}
-	else if (isVariable(fLeft) && isVariable(fRight)) {
+	if (fLeft->equals(fRight)) {
 		// x + x = 2 * x
-		return newProduct(newConstant(2.0f), fRight);
+		return newProduct(newConstant(2.0f), fLeft->simplify());
 	}
-	else if (isProduct(fLeft) && isProduct(fRight)) {
+	if (isProduct(fLeft) && isProduct(fRight)) {
 		auto left = toProduct(fLeft);
 		auto right = toProduct(fRight);
 		if (isConstant(left->fLeft) && isConstant(right->fLeft) &&
-			isVariable(left->fRight) && left->fRight->equals(right->fRight)) {
-			// (n * x) + (m * x) = (n * m) * x
+			left->fRight->equals(right->fRight)) {
+			// (n * x) + (m * x) = (n + m) * x
 			return newProduct(newConstant(toConstant(left->fLeft)->fValue + toConstant(right->fLeft)->fValue), left->fRight);
-		}
-	}
-	else if (isPower(fLeft) && isPower(fRight)) {
-		auto left = toPower(fLeft);
-		auto right = toPower(fRight);
-		if (isConstant(left->fExponent) && isConstant(right->fExponent) &&
-			isVariable(left->fBase) && isVariable(right->fBase)) {
-			if (toConstant(left->fExponent)->fValue == toConstant(right->fExponent)->fValue) {
-				// (x ^ n) + (x ^ n) = 2 * (x ^ n)
-				return newProduct(newConstant(2), fLeft);
-			}
 		}
 	}
 	return newSum(fLeft->simplify(), fRight->simplify());
@@ -202,8 +190,16 @@ float Product::evaluate(float x) {
 
 std::shared_ptr<Node> Product::simplify() {
 	// Switch so the constant is always left
-	if (!isConstant(fLeft) && isConstant(fRight)) {
-		return newProduct(fRight, fLeft);
+	if (isConstant(fRight)) {
+		auto right = toConstant(fRight);
+		if (isConstant(fLeft)) {
+			auto left = toConstant(fLeft);
+			// n * m = p
+			return newConstant(left->fValue * right->fValue);
+		}
+		else {
+			return newProduct(fRight, fLeft);
+		}
 	}
 	if (isConstant(fLeft)) {
 		auto left = toConstant(fLeft);
@@ -214,11 +210,6 @@ std::shared_ptr<Node> Product::simplify() {
 		// 1 * n = n
 		else if (left->fValue == 1.0f) {
 			return fRight->simplify();
-		}
-		// n * m = p
-		else if (isConstant(fRight)) {
-			auto right = toConstant(fRight);
-			return newConstant(left->fValue * right->fValue);
 		}
 		else if (isProduct(fRight)) {
 			auto product = toProduct(fRight);
@@ -244,13 +235,19 @@ std::shared_ptr<Node> Product::simplify() {
 				newProduct(productLeft->fRight, productRight->fRight));
 		}
 	}
-	else if (isPower(fLeft) && isPower(fRight)) {
+	if (isPower(fLeft) && isPower(fRight)) {
 		auto left = toPower(fLeft);
 		auto right = toPower(fRight);
-		if (isConstant(left->fExponent) && isConstant(right->fExponent) &&
-			isVariable(left->fBase) && left->fBase->equals(right->fBase)) {
+		if (left->fBase->equals(right->fBase)) {
 			// (x ^ n) * (x ^ m) = x ^ (n + m)
-			return newPower(left->fBase, newConstant(toConstant(left->fExponent)->fValue + toConstant(right->fExponent)->fValue));
+			return newPower(left->fBase, newSum(left->fExponent, right->fExponent));
+		}
+	}
+	if (isPower(fRight)) {
+		auto power = toPower(fRight);
+		// x * (x ^ n) = x ^ (n + 1)
+		if (power->fBase->equals(fLeft)) {
+			return newPower(fLeft, newSum(newConstant(1), power->fExponent));
 		}
 	}
 	return newProduct(fLeft->simplify(), fRight->simplify());
@@ -299,10 +296,21 @@ float Power::evaluate(float x) {
 }
 
 std::shared_ptr<Node> Power::simplify() {
-	if (isConstant(fExponent) && toConstant(fExponent)->fValue == 1) {
-		return fBase->simplify();
+	if (isConstant(fExponent)) {
+		auto exponent = toConstant(fExponent);
+		if (exponent->fValue == 0) {
+			return newConstant(1);
+		}
+		else if (exponent->fValue == 1) {
+			return fBase->simplify();
+		}
 	}
-	return shared_from_this();
+	if (isPower(fBase)) {
+		auto power = toPower(fBase);
+		return newPower(power->fBase, newProduct(power->fExponent, fExponent));
+	}
+	return newPower(fBase->simplify(), fExponent->simplify());
+	//return shared_from_this();
 }
 
 std::ostream &Power::out(std::ostream &stream) const {
