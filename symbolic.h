@@ -28,8 +28,18 @@ public:
 		return fRef->evaluate(x);
 	}
 
-	NodeRef simplify() {
+	NodeRef simplifyStep() {
 		return NodeRef(fRef->simplify());
+	}
+
+	NodeRef simplify() {
+		auto prev = fRef;
+		auto simplified = prev->simplify();
+		while (!simplified->equals(prev)) {
+			prev = simplified;
+			simplified = simplified->simplify();
+		}
+		return NodeRef(simplified);
 	}
 
 	friend NodeRef operator+(const NodeRef &left, const NodeRef &right);

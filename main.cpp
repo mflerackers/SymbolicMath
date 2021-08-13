@@ -7,7 +7,7 @@ void simplificationTests() {
 	auto n = 2.0f * x + 3.0f * x;
 	std::cout << "expression " << n << "\n";
   	std::cout << "simplify\n";
-	n = n.simplify();
+	n = n.simplifyStep();
 	std::cout << n << "\n";
 
 	std::cout << "<------>\n";
@@ -15,9 +15,9 @@ void simplificationTests() {
 	auto o = (2.0f * x) * (3.0f * x);
 	std::cout << "expression " << o << "\n";
   	std::cout << "simplify\n";
-	o = o.simplify();
+	o = o.simplifyStep();
 	std::cout << o << "\n";
-	o = o.simplify();
+	o = o.simplifyStep();
 	std::cout << o << "\n";
 
 	std::cout << "<------>\n";
@@ -25,7 +25,7 @@ void simplificationTests() {
 	auto p = (x ^ 2) + (x ^ 2);
 	std::cout << "expression " << p << "\n";
   	std::cout << "simplify\n";
-	p = p.simplify();
+	p = p.simplifyStep();
 	std::cout << p << "\n";
 
 	std::cout << "<------>\n";
@@ -33,11 +33,11 @@ void simplificationTests() {
 	auto q = (x ^ 2) * (x ^ 2);
 	std::cout << "expression " << q << "\n";
   	std::cout << "simplify\n";
-	q = q.simplify();
+	q = q.simplifyStep();
 	std::cout << q << "\n";
-	q = q.simplify();
+	q = q.simplifyStep();
 	std::cout << q << "\n";
-	q = q.simplify();
+	q = q.simplifyStep();
 	std::cout << q << "\n";
 
 	std::cout << "<------>\n";
@@ -54,14 +54,6 @@ int main() {
 	std::cout << "simplify\n";
 	dn = dn.simplify();
 	std::cout << dn << "\n";
-	dn = dn.simplify();
-	std::cout << dn << "\n";
-	dn = dn.simplify();
-	std::cout << dn << "\n";
-	dn = dn.simplify();
-	std::cout << dn << "\n";
-	dn = dn.simplify();
-	std::cout << dn << "\n";
 	std::cout << "evaluation x=5 " << dn.evaluate(5) << "\n";
 
 	std::cout << "<------>\n";
@@ -73,12 +65,6 @@ int main() {
 	auto dm = m.derive();
 	std::cout << "derivative " << dm << "\n";
 	std::cout << "simplify\n";
-	dm = dm.simplify();
-	std::cout << dm << "\n";
-	dm = dm.simplify();
-	std::cout << dm << "\n";
-	dm = dm.simplify();
-	std::cout << dm << "\n";
 	dm = dm.simplify();
 	std::cout << dm << "\n";
 	std::cout << "evaluation x=pi  " << dm.evaluate(M_PI) << "\n";
@@ -93,8 +79,6 @@ int main() {
 	std::cout << "simplify\n";
 	dp = dp.simplify();
 	std::cout << dp << "\n";
-	dp = dp.simplify();
-	std::cout << dp << "\n";
 	std::cout << "evaluation x=3 " << dp.evaluate(3) << "\n";
 
 	std::cout << "<------>\n";
@@ -106,18 +90,12 @@ int main() {
 	std::cout << "simplify\n";
 	dq = dq.simplify();
 	std::cout << dq << "\n";
-	dq = dq.simplify();
-	std::cout << dq << "\n";
-	dq = dq.simplify();
-	std::cout << dq << "\n";
 
 	std::cout << "<------>\n";
 
 	auto r = (2 * x) * (4 * x);
 	std::cout << "expression " << r << "\n";
 	std::cout << "simplify\n";
-	r = r.simplify();
-	std::cout << r << "\n";
 	r = r.simplify();
 	std::cout << r << "\n";
 
@@ -128,10 +106,6 @@ int main() {
 	auto ds = s.derive();
 	std::cout << "derivative " << ds << "\n";
 	std::cout << "simplify\n";
-	ds = ds.simplify();
-	std::cout << ds << "\n";
-	ds = ds.simplify();
-	std::cout << ds << "\n";
 	ds = ds.simplify();
 	std::cout << ds << "\n";
 
@@ -165,16 +139,6 @@ int main() {
 	std::cout << "simplify\n";
 	dv = dv.simplify();
 	std::cout << dv << "\n";
-	dv = dv.simplify();
-	std::cout << dv << "\n";
-	dv = dv.simplify();
-	std::cout << dv << "\n";
-	dv = dv.simplify();
-	std::cout << dv << "\n";
-	dv = dv.simplify();
-	std::cout << dv << "\n";
-	dv = dv.simplify();
-	std::cout << dv << "\n";
 	std::cout << "evaluation x=3 " << dv.evaluate(3) << "\n";
 
 	std::cout << "<------>\n";
@@ -185,14 +149,6 @@ int main() {
 	auto dw = w.derive();
 	std::cout << "derivative " << dw << "\n";
 	std::cout << "simplify\n";
-	dw = dw.simplify();
-	std::cout << dw << "\n";
-	dw = dw.simplify();
-	std::cout << dw << "\n";
-	dw = dw.simplify();
-	std::cout << dw << "\n";
-	dw = dw.simplify();
-	std::cout << dw << "\n";
 	dw = dw.simplify();
 	std::cout << dw << "\n";
 	std::cout << "evaluation x=3 " << dw.evaluate(3) << "\n";
