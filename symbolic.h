@@ -57,8 +57,11 @@ public:
 	std::shared_ptr<Node> fRef;
 };
 
+NodeRef constant(float value);
 NodeRef variable();
+NodeRef vec2(const NodeRef&, const NodeRef&);
 NodeRef sqrt(const NodeRef &argument);
 NodeRef ln(const NodeRef &argument);
 NodeRef cos(const NodeRef &argument);
 NodeRef sin(const NodeRef &argument);
+NodeRef dot(const NodeRef &left, const NodeRef &right);

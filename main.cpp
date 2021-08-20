@@ -43,6 +43,36 @@ void simplificationTests() {
 	std::cout << "<------>\n";
 }
 
+void vectorTests() {
+	auto x = variable();
+
+	auto v1 = vec2(x+x, constant(2.0f));
+	std::cout << "simplify " << v1 << "\n";
+	v1 = v1.simplify();
+	std::cout << v1 << "\n";
+	auto dv1 = v1.derive().simplify();
+	std::cout << "derivative " << dv1 << "\n";
+
+	auto v2 = vec2(x, constant(4.0f));
+	auto v = v1 + v2;
+	std::cout << "sum " << v << "\n";
+	std::cout << "simplify " << v.simplify() << "\n";
+
+	v = 2.0f * v1;
+	std::cout << "product " << v << "\n";
+	std::cout << "simplify " << v.simplify() << "\n";
+
+	v = x * v1;
+	std::cout << "product " << v << "\n";
+	std::cout << "simplify " << v.simplify() << "\n";
+	auto dv = v.derive().simplify();
+	std::cout << "derivative " << dv << "\n";
+
+	v = dot(v1, v2);
+	std::cout << "dot " << v << "\n";
+	std::cout << "simplify " << v.simplify() << "\n";
+}
+
 int main() {
 	auto x = variable();
 	auto n = 2.0f * x - 2.0f * (x ^ 2);
@@ -156,4 +186,5 @@ int main() {
 	std::cout << "<------>\n";
 
 	simplificationTests();
+	vectorTests();
 }

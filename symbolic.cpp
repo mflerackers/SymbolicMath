@@ -1,5 +1,6 @@
 #include "symbolic.h"
 #include "symbolic_internal.h"
+#include <algorithm>
 
 NodeRef operator+(const NodeRef &left, const NodeRef &right) {
 	return NodeRef(newSum(left.fRef, right.fRef));
@@ -45,8 +46,16 @@ bool operator==(const NodeRef &left, const NodeRef &right) {
 	return left.fRef->equals(right.fRef);
 }
 
+NodeRef constant(float value) {
+	return NodeRef(newConstant(value));
+}
+
 NodeRef variable() {
 	return NodeRef(newVariable());
+}
+
+NodeRef vec2(const NodeRef &x, const NodeRef &y) {
+	return NodeRef(newVector({x.fRef, y.fRef}));
 }
 
 NodeRef sqrt(const NodeRef &argument) {
@@ -63,6 +72,24 @@ NodeRef cos(const NodeRef &argument) {
 
 NodeRef sin(const NodeRef &argument) {
 	return NodeRef(newSine(argument.fRef));
+}
+
+NodeRef dot(const NodeRef &left, const NodeRef &right) {
+	if (isVector(left.fRef) && isVector(right.fRef)) {
+		auto leftVector = toVector(left.fRef);
+		auto rightVector = toVector(right.fRef);
+		std::shared_ptr<Node> dot = newConstant(0.0f);
+		if (leftVector->getDimension() == rightVector->getDimension()) {
+			dot = newProduct(leftVector->elements.front(), rightVector->elements.front());
+			for (size_t i = 1; i < leftVector->getDimension(); i++) {
+				dot = newSum(dot, newProduct(leftVector->elements[i], rightVector->elements[i]));
+			}
+		}
+		return NodeRef(dot);
+	}
+	else {
+		return left * right;
+	}
 }
 
 // Constant
@@ -117,6 +144,55 @@ bool Variable::equals(const std::shared_ptr<Node> &other) const {
 	return variable != nullptr;
 }
 
+// Vector
+Vector::Vector(std::initializer_list<std::shared_ptr<Node>> nodes) : 
+elements(nodes) {
+
+}
+
+Vector::Vector(std::vector<std::shared_ptr<Node>> &&nodes) : 
+elements(nodes) {
+
+}
+
+std::shared_ptr<Node> Vector::derive() {
+	std::vector<std::shared_ptr<Node>> s;
+	s.resize(elements.size());
+	std::transform(elements.begin(), elements.end(), s.begin(), [](auto &e){ 		return e->derive();
+	});
+	return newVector(std::move(s));
+}
+
+float Vector::evaluate(float x) {
+	return 0.0f;
+}
+
+std::shared_ptr<Node> Vector::simplify() {
+	std::vector<std::shared_ptr<Node>> s;
+	s.resize(elements.size());
+	std::transform(elements.begin(), elements.end(), s.begin(), [](auto &e){ 		return e->simplify();
+	});
+	return newVector(std::move(s));
+}
+
+std::ostream &Vector::out(std::ostream &stream) const {
+	bool first = true;
+	stream << "[";
+	for (auto &element : elements) {
+		if (!first) { stream << ", "; } else { first = false; }
+		element->out(stream);
+	}
+	stream << "]";
+	return stream;
+}
+
+bool Vector::equals(const std::shared_ptr<Node> &other) const {
+	auto vector = toVector(other);
+	return vector && vector->getDimension() == getDimension() && std::equal(elements.begin(), elements.end(), vector->elements.begin(), [](auto &a, auto &b){
+		return a->equals(b);
+	});
+}
+
 // Sum
 /* 
 	The derivative of a sum is the sum of the derivatives
@@ -160,6 +236,25 @@ std::shared_ptr<Node> Sum::simplify() {
 			left->fRight->equals(right->fRight)) {
 			// (n * x) + (m * x) = (n + m) * x
 			return newProduct(newConstant(toConstant(left->fLeft)->fValue + toConstant(right->fLeft)->fValue), left->fRight);
+		}
+	}
+	if (isProduct(fLeft)) {
+		auto left = toProduct(fLeft);
+		// (n * x) + x = (n + 1) * x
+		if (isConstant(left->fLeft) && left->fRight->equals(fRight)) {
+			return newProduct(newConstant(toConstant(left->fLeft)->fValue + 1), fRight);
+		}
+	}
+	if (isVector(fRight)) {
+		auto left = toVector(fLeft);
+		auto right = toVector(fRight);
+		if (left->getDimension() == right->getDimension()) {
+			std::vector<std::shared_ptr<Node>> s;
+			s.resize(left->getDimension());
+			std::transform(left->elements.begin(), left->elements.end(), right->elements.begin(), s.begin(), [](auto &a, auto &b){
+				return newSum(a->simplify(), b->simplify());
+			});
+			return newVector(std::move(s));
 		}
 	}
 	return newSum(fLeft->simplify(), fRight->simplify());
@@ -235,6 +330,20 @@ std::shared_ptr<Node> Product::simplify() {
 				newProduct(productLeft->fRight, productRight->fRight));
 		}
 	}
+	if (isProduct(fLeft)) {
+		auto productLeft = toProduct(fLeft);
+		// (n * x) * x = n * (x ^ 2)
+		if (productLeft->fRight->equals(fRight)) {
+			return newProduct(productLeft->fRight, newPower(fRight, newConstant(2.0f)));
+		}
+	}
+	if (isProduct(fRight)) {
+		auto productRight = toProduct(fRight);
+		// x * (n * x) = n * (x ^ 2)
+		if (productRight->fRight->equals(fLeft)) {
+			return newProduct(productRight->fLeft, newPower(fLeft, newConstant(2.0f)));
+		}
+	}
 	if (isPower(fLeft) && isPower(fRight)) {
 		auto left = toPower(fLeft);
 		auto right = toPower(fRight);
@@ -248,6 +357,17 @@ std::shared_ptr<Node> Product::simplify() {
 		// x * (x ^ n) = x ^ (n + 1)
 		if (power->fBase->equals(fLeft)) {
 			return newPower(fLeft, newSum(newConstant(1), power->fExponent));
+		}
+	}
+	if (isVector(fRight)) {
+		auto vector = toVector(fRight);
+		if (isConstant(fLeft) || isVariable(fLeft)) {
+			std::vector<std::shared_ptr<Node>> s;
+			s.resize(vector->getDimension());
+			std::transform(vector->elements.begin(), vector->elements.end(), s.begin(), [this](auto &e){
+				return newProduct(fLeft->simplify(), e->simplify());
+			});
+			return newVector(std::move(s));
 		}
 	}
 	return newProduct(fLeft->simplify(), fRight->simplify());

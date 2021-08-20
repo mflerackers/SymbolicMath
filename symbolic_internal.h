@@ -1,3 +1,6 @@
+#include <vector>
+
+// Scalars, vectors, matrices
 class Constant : public Node, public std::enable_shared_from_this<Constant> {
 public:
 	Constant(float value) :
@@ -44,9 +47,42 @@ inline Variable *toVariable(const std::shared_ptr<Node> &node) {
 }
 
 inline bool isVariable(const std::shared_ptr<Node> &node) {
-	return dynamic_cast<Variable*>(node.get()) != nullptr;
+	return toVariable(node) != nullptr;
 }
 
+class Vector : public Node {
+public:
+	Vector(std::initializer_list<std::shared_ptr<Node>> nodes);
+	Vector(std::vector<std::shared_ptr<Node>> &&nodes);
+
+	std::shared_ptr<Node> derive() override;
+	float evaluate(float x) override;
+	std::shared_ptr<Node> simplify() override;
+	std::ostream &out(std::ostream &stream) const override;
+	bool equals(const std::shared_ptr<Node> &other) const override;
+
+	size_t getDimension() const { return elements.size(); };
+
+	std::vector<std::shared_ptr<Node>> elements;
+};
+
+inline std::shared_ptr<Vector> newVector(std::initializer_list<std::shared_ptr<Node>> nodes) {
+	return std::make_shared<Vector>(nodes);
+}
+
+inline std::shared_ptr<Vector> newVector(std::vector<std::shared_ptr<Node>> &&nodes) {
+	return std::make_shared<Vector>(std::move(nodes));
+}
+
+inline Vector *toVector(const std::shared_ptr<Node> &node) {
+	return dynamic_cast<Vector*>(node.get());
+}
+
+inline bool isVector(const std::shared_ptr<Node> &node) {
+	return toVector(node)!= nullptr;
+}
+
+// Functions
 class Sum : public Node {
 public:
 	Sum(const std::shared_ptr<Node> &left, const std::shared_ptr<Node> &right) :
