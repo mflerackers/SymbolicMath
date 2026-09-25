@@ -5,6 +5,7 @@
 class Node {
 public:
 	virtual std::shared_ptr<Node> derive() = 0;
+    virtual std::shared_ptr<Node> integrate() = 0;
 	virtual float evaluate(float x) = 0;
 	virtual std::shared_ptr<Node> simplify() = 0;
 	virtual std::ostream &out(std::ostream &stream) const = 0;
@@ -19,9 +20,14 @@ class NodeRef {
 public:
 	NodeRef(const std::shared_ptr<Node> &node) :
 	fRef(node) {}
+	NodeRef(float value);
 
 	NodeRef derive() {
 		return NodeRef(fRef->derive());
+	}
+
+	NodeRef integrate() {
+		return NodeRef(fRef->integrate());
 	}
 
 	float evaluate(float x) {
@@ -42,6 +48,7 @@ public:
 		return NodeRef(simplified);
 	}
 
+	friend NodeRef operator-(const NodeRef &argument);
 	friend NodeRef operator+(const NodeRef &left, const NodeRef &right);
 	friend NodeRef operator-(const NodeRef &left, const NodeRef &right);
 	friend NodeRef operator*(float left, const NodeRef &right);
@@ -59,7 +66,10 @@ public:
 
 NodeRef constant(float value);
 NodeRef variable();
+NodeRef vec(std::initializer_list<NodeRef> elements);
 NodeRef vec2(const NodeRef&, const NodeRef&);
+NodeRef vec3(const NodeRef&, const NodeRef&, const NodeRef&);
+NodeRef matrix(std::initializer_list<NodeRef> rows);
 NodeRef sqrt(const NodeRef &argument);
 NodeRef ln(const NodeRef &argument);
 NodeRef cos(const NodeRef &argument);

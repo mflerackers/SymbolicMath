@@ -1,4 +1,3 @@
 - Partial derivatives
 - Evaluate multidimensional functions
-- Integrals
-- Matrices
+- Gravity for types, in order to float constants to the top, while heavier operations sink
