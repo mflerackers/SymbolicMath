@@ -458,8 +458,11 @@ std::ostream &Sum::out(std::ostream &stream) const {
 
 bool Sum::equals(const std::shared_ptr<Node> &other) const {
   auto sum = toSum(other);
-  return sum && ((sum->fLeft->equals(fLeft) && sum->fRight->equals(fRight)) ||
-                 (sum->fLeft->equals(fRight) && sum->fRight->equals(fLeft)));
+  return sum &&
+         ((sum->fLeft->equals(fLeft) &&
+           sum->fRight->equals(fRight))); //||
+                                          //(sum->fLeft->equals(fRight) &&
+                                          // sum->fRight->equals(fLeft)));
 }
 
 // Product
@@ -633,9 +636,9 @@ std::ostream &Product::out(std::ostream &stream) const {
 
 bool Product::equals(const std::shared_ptr<Node> &other) const {
   auto product = toProduct(other);
-  return product &&
-         ((product->fLeft->equals(fLeft) && product->fRight->equals(fRight)) ||
-          (product->fLeft->equals(fRight) && product->fRight->equals(fLeft)));
+  return product && ((product->fLeft->equals(fLeft) &&
+                      product->fRight->equals(fRight))); /*||
+(product->fLeft->equals(fRight) && product->fRight->equals(fLeft)));*/
 }
 
 // Function
@@ -679,8 +682,10 @@ std::shared_ptr<Node> Power::derive() {
 std::shared_ptr<Node> Power::integrate() {
   if (isConstant(fExponent)) {
     auto exponent = toConstant(fExponent)->fValue;
-    return newProduct(newPower(newConstant(exponent + 1.0f), newConstant(-1)),
-                      newPower(fBase, newConstant(exponent + 1.0f)));
+    return newProduct(
+        newProduct(newPower(newConstant(exponent + 1.0f), newConstant(-1)),
+                   newPower(fBase, newConstant(exponent + 1.0f))),
+        newPower(fBase->derive(), newConstant(-1)));
   }
   std::cout << "Power::integrate() NYI\n";
   return nullptr;

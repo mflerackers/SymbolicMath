@@ -250,9 +250,16 @@ int main() {
   auto diyy = iyy.derive().simplify();
   std::cout << "derivative " << diyy << "\n";
 
+  auto yyy = (2 * x + 4) ^ 4;
+  std::cout << "expression " << yyy << "\n";
+  auto iyyy = yyy.integrate().simplify();
+  std::cout << "integral " << iyyy << "\n";
+  auto diyyy = iyyy.derive().simplify();
+  std::cout << "derivative " << diyyy << "\n";
+
   std::cout << "<---kokokokokokoko--->\n";
 
-  simplificationTests();
-  vectorTests();
-  matrixTests();
+  // simplificationTests();
+  // vectorTests();
+  // matrixTests();
 }
