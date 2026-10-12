@@ -26,8 +26,12 @@ NodeRef operator*(const NodeRef &left, const NodeRef &right) {
 }
 
 NodeRef operator/(float left, const NodeRef &right) {
-  return NodeRef(
-      newProduct(newConstant(left), newPower(right.fRef, newConstant(-1.0f))));
+  if (left == 1) {
+    return NodeRef(newPower(right.fRef, newConstant(-1.0f)));
+  } else {
+    return NodeRef(newProduct(newConstant(left),
+                              newPower(right.fRef, newConstant(-1.0f))));
+  }
 }
 
 NodeRef operator/(const NodeRef &left, const NodeRef &right) {
@@ -140,6 +144,20 @@ NodeRef dot(const NodeRef &left, const NodeRef &right) {
   } else {
     return left * right;
   }
+}
+
+float newton(NodeRef function, float estimate) {
+  return estimate -
+         function.evaluate(estimate) / function.derive().evaluate(estimate);
+}
+
+float newton(NodeRef function, float estimate, int rounds) {
+  auto derivative = function.derive();
+  for (int i = 0; i < rounds; i++) {
+    estimate =
+        estimate - function.evaluate(estimate) / derivative.evaluate(estimate);
+  }
+  return estimate;
 }
 
 // Constant
@@ -549,9 +567,11 @@ std::shared_ptr<Node> Product::simplify() {
     if (productLeft->fRight->equals(fRight)) {
       return newProduct(productLeft->fLeft,
                         newPower(fRight, newConstant(2.0f)));
-    }
-    if (isConstant(productLeft->fLeft)) {
+    } else if (isConstant(productLeft->fLeft)) {
       // (n * x) * y = n * (x * y)
+      return newProduct(productLeft->fLeft,
+                        newProduct(productLeft->fRight, fRight));
+    } else {
       return newProduct(productLeft->fLeft,
                         newProduct(productLeft->fRight, fRight));
     }
@@ -562,9 +582,8 @@ std::shared_ptr<Node> Product::simplify() {
     if (productRight->fRight->equals(fLeft)) {
       return newProduct(productRight->fLeft,
                         newPower(fLeft, newConstant(2.0f)));
-    }
-    if (isConstant(productRight->fLeft)) {
-      // (n * x) * y = n * (x * y)
+    } else if (isConstant(productRight->fLeft)) {
+      // x * (n * y) = n * (x * y)
       return newProduct(productRight->fLeft,
                         newProduct(fLeft, productRight->fRight));
     }
@@ -627,7 +646,7 @@ std::shared_ptr<Node> Product::simplify() {
 
 std::ostream &Product::out(std::ostream &stream) const {
   if (isConstant(fLeft) && isVariable(fRight)) {
-    stream << "(" << *fLeft << *fRight << ")";
+    stream << "" << *fLeft << *fRight << "";
   } else {
     stream << "(" << *fLeft << " * " << *fRight << ")";
   }
@@ -682,10 +701,25 @@ std::shared_ptr<Node> Power::derive() {
 std::shared_ptr<Node> Power::integrate() {
   if (isConstant(fExponent)) {
     auto exponent = toConstant(fExponent)->fValue;
-    return newProduct(
-        newProduct(newPower(newConstant(exponent + 1.0f), newConstant(-1)),
-                   newPower(fBase, newConstant(exponent + 1.0f))),
-        newPower(fBase->derive(), newConstant(-1)));
+    if (exponent == -1) {
+      if (isVariable(fBase)) {
+        // ∫1/x = ln(x)
+        return newNaturalLogarithm(fBase);
+      } else if (isLinear(fBase)) {
+        // ∫1/(ax+b) = ln(ax+b)/a
+        return newProduct(newNaturalLogarithm(fBase),
+                          newPower(fBase->derive(), newConstant(-1)));
+      }
+    } else if (isLinear(fBase)) {
+      // ∫(ax+b)^n = (ax+b)^(n+1)/(a(n+1))
+      return newProduct(
+          newProduct(newPower(newConstant(exponent + 1.0f), newConstant(-1)),
+                     newPower(fBase, newConstant(exponent + 1.0f))),
+          newPower(fBase->derive(), newConstant(-1)));
+    }
+  } else if (isVariable(fExponent) && isConstant(fBase)) {
+    return newProduct(newPower(fBase, fExponent),
+                      newPower(newNaturalLogarithm(fBase), newConstant(-1)));
   }
   std::cout << "Power::integrate() NYI\n";
   return nullptr;
@@ -795,11 +829,13 @@ bool NaturalLogarithm::equals(const std::shared_ptr<Node> &other) const {
 // Cosine
 std::shared_ptr<Node>
 Cosine::deriveFunction(const std::shared_ptr<Node> &argument) {
+  // cos'(x) = -sin(x)
   return newProduct(newConstant(-1.0f), newSine(argument));
 }
 
 std::shared_ptr<Node>
 Cosine::integrateFunction(const std::shared_ptr<Node> &argument) {
+  // ∫cos(x) = sin(x)
   return newSine(argument);
 }
 
@@ -819,11 +855,13 @@ bool Cosine::equals(const std::shared_ptr<Node> &other) const {
 // Sine
 std::shared_ptr<Node>
 Sine::deriveFunction(const std::shared_ptr<Node> &argument) {
+  // sin'(x) = cos(x)
   return newCosine(argument);
 }
 
 std::shared_ptr<Node>
 Sine::integrateFunction(const std::shared_ptr<Node> &argument) {
+  // ∫sin(x) = -cos(x)
   return newProduct(newConstant(-1.0f), newCosine(argument));
 }
 

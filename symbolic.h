@@ -71,3 +71,6 @@ NodeRef ln(const NodeRef &argument);
 NodeRef cos(const NodeRef &argument);
 NodeRef sin(const NodeRef &argument);
 NodeRef dot(const NodeRef &left, const NodeRef &right);
+
+float newton(const NodeRef function, float estimate);
+float newton(const NodeRef function, float estimate, int rounds);

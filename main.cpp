@@ -250,14 +250,40 @@ int main() {
   auto diyy = iyy.derive().simplify();
   std::cout << "derivative " << diyy << "\n";
 
-  auto yyy = (2 * x + 4) ^ 4;
+  auto yyy = (4 + 2 * x) ^ 4;
   std::cout << "expression " << yyy << "\n";
   auto iyyy = yyy.integrate().simplify();
   std::cout << "integral " << iyyy << "\n";
   auto diyyy = iyyy.derive().simplify();
   std::cout << "derivative " << diyyy << "\n";
 
+  {
+    auto y = 1 / x;
+    std::cout << "expression " << y << "\n";
+    auto iy = y.integrate().simplify();
+    std::cout << "integral " << iy << "\n";
+    auto diy = iy.derive().simplify();
+    std::cout << "derivative " << diy << "\n";
+  }
+
+  {
+    auto y = 4 ^ x;
+    std::cout << "expression " << y << "\n";
+    auto iy = y.integrate().simplify();
+    std::cout << "integral " << iy << "\n";
+    auto diy = iy.derive().simplify();
+    std::cout << "derivative " << diy << "\n";
+  }
+
   std::cout << "<---kokokokokokoko--->\n";
+
+  {
+    auto f = 2 - (x ^ 2);
+    std::cout << "f " << f << "\n";
+    std::cout << "f(1) " << f.evaluate(1) << "\n";
+    std::cout << "better approximation " << newton(f, 1, 10) << "\n";
+    std::cout << "√2 " << sqrtf(2) << "\n";
+  }
 
   // simplificationTests();
   // vectorTests();
