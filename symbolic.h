@@ -28,6 +28,7 @@ public:
   NodeRef integrate() { return NodeRef(fRef->integrate()); }
 
   float evaluate(float x) { return fRef->evaluate(x); }
+  float operator()(float x) { return evaluate(x); }
 
   NodeRef simplifyStep() { return NodeRef(fRef->simplify()); }
 

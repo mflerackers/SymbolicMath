@@ -149,7 +149,7 @@ NodeRef dot(const NodeRef &left, const NodeRef &right) {
 // Does one single Newton step
 float newton(NodeRef function, float estimate) {
   return estimate -
-         function.evaluate(estimate) / function.derive().evaluate(estimate);
+         function(estimate) / function.derive()(estimate);
 }
 
 // Given a function and an estimate, finds the root closest to the estimate.
@@ -159,7 +159,7 @@ float newton(NodeRef function, float estimate, int rounds) {
   auto derivative = function.derive();
   for (int i = 0; i < rounds; i++) {
     estimate =
-        estimate - function.evaluate(estimate) / derivative.evaluate(estimate);
+        estimate - function(estimate) / derivative(estimate);
   }
   return estimate;
 }
@@ -167,12 +167,12 @@ float newton(NodeRef function, float estimate, int rounds) {
 // Given a function and a number, returns a polynomial which approximates the function in the
 // neighborhood of the number.
 NodeRef taylor(NodeRef function, float around, int degree) {
-  NodeRef series = function.evaluate(around);
+  NodeRef series = function(around);
   NodeRef derivative = function.derive();
   float factorial = 1;
   for (int i = 1; i <= degree; i++) {
     factorial *= i;
-    series = series + (derivative.evaluate(around) / factorial) * ((variable() - constant(around))^i);
+    series = series + (derivative(around) / factorial) * ((variable() - constant(around))^i);
     derivative = derivative.derive();
   }
   return series.simplify();

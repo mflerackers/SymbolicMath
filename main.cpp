@@ -280,7 +280,7 @@ int main() {
   {
     auto f = 2 - (x ^ 2);
     std::cout << "f " << f << "\n";
-    std::cout << "f(1) " << f.evaluate(1) << "\n";
+    std::cout << "f(1) " << f(1) << "\n";
     std::cout << "better root approximation " << newton(f, 1, 10) << "\n";
     std::cout << "√2 " << sqrtf(2) << "\n";
   }
