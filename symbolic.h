@@ -74,3 +74,4 @@ NodeRef dot(const NodeRef &left, const NodeRef &right);
 
 float newton(const NodeRef function, float estimate);
 float newton(const NodeRef function, float estimate, int rounds);
+NodeRef taylor(NodeRef function, float around, int degree);

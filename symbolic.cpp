@@ -146,11 +146,15 @@ NodeRef dot(const NodeRef &left, const NodeRef &right) {
   }
 }
 
+// Does one single Newton step
 float newton(NodeRef function, float estimate) {
   return estimate -
          function.evaluate(estimate) / function.derive().evaluate(estimate);
 }
 
+// Given a function and an estimate, finds the root closest to the estimate.
+// Given estimate = x0, returns x1 where f(x1) < f(x0).
+// To find an x where f(x) = y, simply use f(x) - y as function.
 float newton(NodeRef function, float estimate, int rounds) {
   auto derivative = function.derive();
   for (int i = 0; i < rounds; i++) {
@@ -158,6 +162,20 @@ float newton(NodeRef function, float estimate, int rounds) {
         estimate - function.evaluate(estimate) / derivative.evaluate(estimate);
   }
   return estimate;
+}
+
+// Given a function and a number, returns a polynomial which approximates the function in the
+// neighborhood of the number.
+NodeRef taylor(NodeRef function, float around, int degree) {
+  NodeRef series = function.evaluate(around);
+  NodeRef derivative = function.derive();
+  float factorial = 1;
+  for (int i = 1; i <= degree; i++) {
+    factorial *= i;
+    series = series + (derivative.evaluate(around) / factorial) * ((variable() - constant(around))^i);
+    derivative = derivative.derive();
+  }
+  return series.simplify();
 }
 
 // Constant
@@ -188,14 +206,9 @@ bool Constant::equals(const std::shared_ptr<Node> &other) const {
 }
 
 // Variable
-/*
-        The derivative of a variable is one
-*/
+// The derivative of a variable is one
 std::shared_ptr<Node> Variable::derive() { return newConstant(1.0f); }
-/*
-        The integral of a constant is the product of the constant and
-   the variable
-*/
+// The integral of a constant is the product of the constant and the variable
 std::shared_ptr<Node> Variable::integrate() {
   return newProduct(newPower(newConstant(2), newConstant(-1)),
                     newPower(shared_from_this(), newConstant(2)));
@@ -348,10 +361,8 @@ std::shared_ptr<Vector> Matrix::getColumn(size_t index) {
 }
 
 // Sum
-/*
-        The derivative of a sum is the sum of the derivatives
-        (a + b)' = a' + b'
-*/
+// The derivative of a sum is the sum of the derivatives
+// (a + b)' = a' + b'
 std::shared_ptr<Node> Sum::derive() {
   return newSum(fLeft->derive(), fRight->derive());
 }
@@ -484,10 +495,8 @@ bool Sum::equals(const std::shared_ptr<Node> &other) const {
 }
 
 // Product
-/*
-        The derivative of a product is
-        (a * b)' = a' * b + a * b'
-*/
+// The derivative of a product is
+// (a * b)' = a' * b + a * b'
 std::shared_ptr<Node> Product::derive() {
   return newSum(newProduct(fLeft->derive(), fRight),
                 newProduct(fLeft, fRight->derive()));
@@ -497,11 +506,6 @@ std::shared_ptr<Node> Product::derive() {
                 ∫(a * b) = a∫b - ∫(a'∫b)
 */
 std::shared_ptr<Node> Product::integrate() {
-  /*std::cout << "product\n";
-  fRight->integrate()->simplify()->out(std::cout);
-  std::cout << "\n";
-  fLeft->derive()->simplify()->out(std::cout);
-  std::cout << "\n";*/
   return newSum(newProduct(fLeft, fRight->integrate()->simplify()),
                 newProduct(newConstant(-1),
                            newProduct(fLeft->derive()->simplify(),
@@ -668,14 +672,12 @@ std::shared_ptr<Node> Function::derive() {
 std::shared_ptr<Node> Function::integrate() { return nullptr; }
 
 // Power
-/*
-        The derivative of a power is
-        (b ^ e)' = (b ^ e) * (e' * ln(b) + e * (ln(b))')
-        If e is a constant this becomes
-        (b ^ c)' = (b ^ c) * (0 * ln(b) + c * 1 / b) = c * b ^ (c - 1)
-        If b is a constant and e is x this becomes
-        (c ^ x)' = (c ^ e) * (1 * ln(c) + x * 0) = ln(c) * (c ^ x)
-*/
+// The derivative of a power is
+// (b ^ e)' = (b ^ e) * (e' * ln(b) + e * (ln(b))')
+// If e is a constant this becomes
+// (b ^ c)' = (b ^ c) * (0 * ln(b) + c * 1 / b) = c * b ^ (c - 1)
+// If b is a constant and e is x this becomes
+// (c ^ x)' = (c ^ e) * (1 * ln(c) + x * 0) = ln(c) * (c ^ x)
 std::shared_ptr<Node> Power::derive() {
   // Specialized for constant exponent since simplification is still lacking
   if (isConstant(fExponent)) {
