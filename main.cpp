@@ -291,6 +291,12 @@ int main() {
     std::cout << "function approximation " << taylor(f, 0, 4) << "\n";
   }
 
+  {
+    auto f = 2 * x;
+    std::cout << "f " << f << "\n";
+    std::cout << "∫_2^4f " << f.integrate(2, 4) << "\n";
+  }
+
   // simplificationTests();
   // vectorTests();
   // matrixTests();

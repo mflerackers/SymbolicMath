@@ -26,6 +26,10 @@ public:
   NodeRef derive() { return NodeRef(fRef->derive()); }
 
   NodeRef integrate() { return NodeRef(fRef->integrate()); }
+  NodeRef integrate(float from, float to) { 
+    auto integral = NodeRef(fRef->integrate());
+    return integral(to) - integral(from);
+  }
 
   float evaluate(float x) { return fRef->evaluate(x); }
   float operator()(float x) { return evaluate(x); }
