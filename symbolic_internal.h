@@ -5,8 +5,8 @@ class Constant : public Node, public std::enable_shared_from_this<Constant> {
 public:
   Constant(float value) : fValue(value) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -29,18 +29,21 @@ inline bool isConstant(const std::shared_ptr<Node> &node) {
 
 class Variable : public Node, public std::enable_shared_from_this<Variable> {
 public:
-  Variable() {}
+  Variable(const std::string &name = "x") : fName(name) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+
+private:
+  std::string fName;
 };
 
-inline std::shared_ptr<Variable> newVariable() {
-  return std::make_shared<Variable>();
+inline std::shared_ptr<Variable> newVariable(const std::string &name = "x") {
+  return std::make_shared<Variable>(name);
 }
 
 inline Variable *toVariable(const std::shared_ptr<Node> &node) {
@@ -56,8 +59,8 @@ public:
   Vector(std::initializer_list<std::shared_ptr<Node>> nodes);
   Vector(std::vector<std::shared_ptr<Node>> &&nodes);
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -93,8 +96,8 @@ public:
   Matrix(size_t rows, size_t columns,
          std::vector<std::shared_ptr<Node>> &&nodes);
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -137,8 +140,8 @@ public:
   Sum(const std::shared_ptr<Node> &left, const std::shared_ptr<Node> &right)
       : fLeft(left), fRight(right) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -166,8 +169,8 @@ public:
   Product(const std::shared_ptr<Node> &left, const std::shared_ptr<Node> &right)
       : fLeft(left), fRight(right) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -197,8 +200,8 @@ public:
         const std::shared_ptr<Node> &exponent)
       : fBase(base), fExponent(exponent) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -236,12 +239,14 @@ class Function : public Node {
 public:
   Function(const std::shared_ptr<Node> &argument) : fArgument(argument) {}
 
-  std::shared_ptr<Node> derive() override;
-  std::shared_ptr<Node> integrate() override;
+  std::shared_ptr<Node> derive(const std::string &name) override;
+  std::shared_ptr<Node> integrate(const std::string &name) override;
   virtual std::shared_ptr<Node>
-  deriveFunction(const std::shared_ptr<Node> &argument) = 0;
+  deriveFunction(const std::shared_ptr<Node> &argument,
+                 const std::string &name) = 0;
   virtual std::shared_ptr<Node>
-  integrateFunction(const std::shared_ptr<Node> &argument) = 0;
+  integrateFunction(const std::shared_ptr<Node> &argument,
+                    const std::string &name) = 0;
   template <typename T>
   bool equalsHelper(const std::shared_ptr<Node> &other) const {
     auto f = dynamic_cast<T *>(other.get());
@@ -261,10 +266,10 @@ public:
   NaturalLogarithm(const std::shared_ptr<Node> &argument)
       : Function(argument), fArgument(argument) {}
 
-  std::shared_ptr<Node>
-  deriveFunction(const std::shared_ptr<Node> &argument) override;
-  std::shared_ptr<Node>
-  integrateFunction(const std::shared_ptr<Node> &argument) override;
+  std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument,
+                                       const std::string &name) override;
+  std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
+                                          const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -282,10 +287,10 @@ class Cosine : public Function, public std::enable_shared_from_this<Cosine> {
 public:
   Cosine(const std::shared_ptr<Node> &argument) : Function(argument) {}
 
-  std::shared_ptr<Node>
-  deriveFunction(const std::shared_ptr<Node> &argument) override;
-  std::shared_ptr<Node>
-  integrateFunction(const std::shared_ptr<Node> &argument) override;
+  std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument,
+                                       const std::string &name) override;
+  std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
+                                          const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
@@ -309,10 +314,10 @@ class Sine : public Function, public std::enable_shared_from_this<Sine> {
 public:
   Sine(const std::shared_ptr<Node> &argument) : Function(argument) {}
 
-  std::shared_ptr<Node>
-  deriveFunction(const std::shared_ptr<Node> &argument) override;
-  std::shared_ptr<Node>
-  integrateFunction(const std::shared_ptr<Node> &argument) override;
+  std::shared_ptr<Node> deriveFunction(const std::shared_ptr<Node> &argument,
+                                       const std::string &name) override;
+  std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
+                                          const std::string &name) override;
   float evaluate(float x) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;

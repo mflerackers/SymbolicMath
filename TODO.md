@@ -1,5 +1,6 @@
-- Partial derivatives
 - Evaluate multidimensional functions
+- Equation solving
+- Factorization
 - Gravity for types, in order to float constants to the top, while heavier operations sink
-- ^ operator precedence is wrong for being power operator
+- ^ operator precedence is wrong for being power operator so it currently needs parentheses
 - Option to preserve fractions (1/4 instead of 0.25)

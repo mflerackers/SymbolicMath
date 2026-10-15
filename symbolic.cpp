@@ -61,7 +61,7 @@ bool operator==(const NodeRef &left, const NodeRef &right) {
 
 NodeRef constant(float value) { return NodeRef(newConstant(value)); }
 
-NodeRef variable() { return NodeRef(newVariable()); }
+NodeRef variable(const std::string &name) { return NodeRef(newVariable(name)); }
 
 NodeRef vec(std::initializer_list<NodeRef> elements) {
   std::vector<std::shared_ptr<Node>> el(elements.size());
@@ -147,33 +147,34 @@ NodeRef dot(const NodeRef &left, const NodeRef &right) {
 }
 
 // Does one single Newton step
-float newton(NodeRef function, float estimate) {
-  return estimate -
-         function(estimate) / function.derive()(estimate);
+float newton(NodeRef function, float estimate, const std::string &name) {
+  return estimate - function(estimate) / function.derive(name)(estimate);
 }
 
 // Given a function and an estimate, finds the root closest to the estimate.
 // Given estimate = x0, returns x1 where f(x1) < f(x0).
 // To find an x where f(x) = y, simply use f(x) - y as function.
-float newton(NodeRef function, float estimate, int rounds) {
-  auto derivative = function.derive();
+float newton(NodeRef function, float estimate, int rounds,
+             const std::string &name) {
+  auto derivative = function.derive(name);
   for (int i = 0; i < rounds; i++) {
-    estimate =
-        estimate - function(estimate) / derivative(estimate);
+    estimate = estimate - function(estimate) / derivative(estimate);
   }
   return estimate;
 }
 
-// Given a function and a number, returns a polynomial which approximates the function in the
-// neighborhood of the number.
-NodeRef taylor(NodeRef function, float around, int degree) {
+// Given a function and a number, returns a polynomial which approximates the
+// function in the neighborhood of the number.
+NodeRef taylor(NodeRef function, float around, int degree,
+               const std::string &name) {
   NodeRef series = function(around);
-  NodeRef derivative = function.derive();
+  NodeRef derivative = function.derive(name);
   float factorial = 1;
   for (int i = 1; i <= degree; i++) {
     factorial *= i;
-    series = series + (derivative(around) / factorial) * ((variable() - constant(around))^i);
-    derivative = derivative.derive();
+    series = series + (derivative(around) / factorial) *
+                          ((variable(name) - constant(around)) ^ i);
+    derivative = derivative.derive(name);
   }
   return series.simplify();
 }
@@ -182,13 +183,15 @@ NodeRef taylor(NodeRef function, float around, int degree) {
 /*
         The derivative of a constant is zero
 */
-std::shared_ptr<Node> Constant::derive() { return newConstant(0.0f); }
+std::shared_ptr<Node> Constant::derive(const std::string &name) {
+  return newConstant(0.0f);
+}
 /*
                 The integral of a constant is the product of the constant and
    the variable
 */
-std::shared_ptr<Node> Constant::integrate() {
-  return newProduct(shared_from_this(), newVariable());
+std::shared_ptr<Node> Constant::integrate(const std::string &name) {
+  return newProduct(shared_from_this(), newVariable(name));
 }
 
 float Constant::evaluate(float x) { return fValue; }
@@ -207,9 +210,12 @@ bool Constant::equals(const std::shared_ptr<Node> &other) const {
 
 // Variable
 // The derivative of a variable is one
-std::shared_ptr<Node> Variable::derive() { return newConstant(1.0f); }
+std::shared_ptr<Node> Variable::derive(const std::string &name) {
+  return fName == name ? newConstant(1.0f) : newConstant(0.0f);
+}
+
 // The integral of a constant is the product of the constant and the variable
-std::shared_ptr<Node> Variable::integrate() {
+std::shared_ptr<Node> Variable::integrate(const std::string &name) {
   return newProduct(newPower(newConstant(2), newConstant(-1)),
                     newPower(shared_from_this(), newConstant(2)));
 }
@@ -219,13 +225,13 @@ float Variable::evaluate(float x) { return x; }
 std::shared_ptr<Node> Variable::simplify() { return shared_from_this(); }
 
 std::ostream &Variable::out(std::ostream &stream) const {
-  stream << "x";
+  stream << fName;
   return stream;
 }
 
 bool Variable::equals(const std::shared_ptr<Node> &other) const {
   auto variable = toVariable(other);
-  return variable != nullptr;
+  return variable != nullptr && fName == variable->fName;
 }
 
 // Vector
@@ -234,19 +240,19 @@ Vector::Vector(std::initializer_list<std::shared_ptr<Node>> nodes)
 
 Vector::Vector(std::vector<std::shared_ptr<Node>> &&nodes) : elements(nodes) {}
 
-std::shared_ptr<Node> Vector::derive() {
+std::shared_ptr<Node> Vector::derive(const std::string &name) {
   std::vector<std::shared_ptr<Node>> s;
   s.resize(elements.size());
   std::transform(elements.begin(), elements.end(), s.begin(),
-                 [](auto &e) { return e->derive(); });
+                 [&name](auto &e) { return e->derive(name); });
   return newVector(std::move(s));
 }
 
-std::shared_ptr<Node> Vector::integrate() {
+std::shared_ptr<Node> Vector::integrate(const std::string &name) {
   std::vector<std::shared_ptr<Node>> s;
   s.resize(elements.size());
   std::transform(elements.begin(), elements.end(), s.begin(),
-                 [](auto &e) { return e->integrate(); });
+                 [&name](auto &e) { return e->integrate(name); });
   return newVector(std::move(s));
 }
 
@@ -291,19 +297,19 @@ Matrix::Matrix(size_t rows, size_t columns,
                std::vector<std::shared_ptr<Node>> &&nodes)
     : rows(rows), columns(columns), elements(nodes) {}
 
-std::shared_ptr<Node> Matrix::derive() {
+std::shared_ptr<Node> Matrix::derive(const std::string &name) {
   std::vector<std::shared_ptr<Node>> s;
   s.resize(elements.size());
   std::transform(elements.begin(), elements.end(), s.begin(),
-                 [](auto &e) { return e->derive(); });
+                 [&name](auto &e) { return e->derive(name); });
   return newMatrix(rows, columns, std::move(s));
 }
 
-std::shared_ptr<Node> Matrix::integrate() {
+std::shared_ptr<Node> Matrix::integrate(const std::string &name) {
   std::vector<std::shared_ptr<Node>> s;
   s.resize(elements.size());
   std::transform(elements.begin(), elements.end(), s.begin(),
-                 [](auto &e) { return e->integrate(); });
+                 [&name](auto &e) { return e->integrate(name); });
   return newMatrix(rows, columns, std::move(s));
 }
 
@@ -363,12 +369,12 @@ std::shared_ptr<Vector> Matrix::getColumn(size_t index) {
 // Sum
 // The derivative of a sum is the sum of the derivatives
 // (a + b)' = a' + b'
-std::shared_ptr<Node> Sum::derive() {
-  return newSum(fLeft->derive(), fRight->derive());
+std::shared_ptr<Node> Sum::derive(const std::string &name) {
+  return newSum(fLeft->derive(name), fRight->derive(name));
 }
 
-std::shared_ptr<Node> Sum::integrate() {
-  return newSum(fLeft->integrate(), fRight->integrate());
+std::shared_ptr<Node> Sum::integrate(const std::string &name) {
+  return newSum(fLeft->integrate(name), fRight->integrate(name));
 }
 
 float Sum::evaluate(float x) {
@@ -497,21 +503,21 @@ bool Sum::equals(const std::shared_ptr<Node> &other) const {
 // Product
 // The derivative of a product is
 // (a * b)' = a' * b + a * b'
-std::shared_ptr<Node> Product::derive() {
-  return newSum(newProduct(fLeft->derive(), fRight),
-                newProduct(fLeft, fRight->derive()));
+std::shared_ptr<Node> Product::derive(const std::string &name) {
+  return newSum(newProduct(fLeft->derive(name), fRight),
+                newProduct(fLeft, fRight->derive(name)));
 }
 /*
                 The integral of a product is
                 ∫(a * b) = a∫b - ∫(a'∫b)
 */
-std::shared_ptr<Node> Product::integrate() {
-  return newSum(newProduct(fLeft, fRight->integrate()->simplify()),
+std::shared_ptr<Node> Product::integrate(const std::string &name) {
+  return newSum(newProduct(fLeft, fRight->integrate(name)->simplify()),
                 newProduct(newConstant(-1),
-                           newProduct(fLeft->derive()->simplify(),
-                                      fRight->integrate()->simplify())
+                           newProduct(fLeft->derive(name)->simplify(),
+                                      fRight->integrate(name)->simplify())
                                ->simplify()
-                               ->integrate()))
+                               ->integrate(name)))
       ->simplify();
 }
 
@@ -665,11 +671,13 @@ bool Product::equals(const std::shared_ptr<Node> &other) const {
 }
 
 // Function
-std::shared_ptr<Node> Function::derive() {
-  return newProduct(deriveFunction(fArgument), fArgument->derive());
+std::shared_ptr<Node> Function::derive(const std::string &name) {
+  return newProduct(deriveFunction(fArgument, name), fArgument->derive(name));
 }
 
-std::shared_ptr<Node> Function::integrate() { return nullptr; }
+std::shared_ptr<Node> Function::integrate(const std::string &name) {
+  return nullptr;
+}
 
 // Power
 // The derivative of a power is
@@ -678,29 +686,30 @@ std::shared_ptr<Node> Function::integrate() { return nullptr; }
 // (b ^ c)' = (b ^ c) * (0 * ln(b) + c * 1 / b) = c * b ^ (c - 1)
 // If b is a constant and e is x this becomes
 // (c ^ x)' = (c ^ e) * (1 * ln(c) + x * 0) = ln(c) * (c ^ x)
-std::shared_ptr<Node> Power::derive() {
+std::shared_ptr<Node> Power::derive(const std::string &name) {
   // Specialized for constant exponent since simplification is still lacking
   if (isConstant(fExponent)) {
     auto exponent = toConstant(fExponent)->fValue;
     return newProduct(newProduct(newConstant(exponent),
                                  newPower(fBase, newConstant(exponent - 1.0f))),
-                      fBase->derive());
+                      fBase->derive(name));
   }
   // Specialized for constant base since simplification is still lacking
   else if (isConstant(fBase)) {
     auto base = toConstant(fBase)->fValue;
     return newProduct(
         shared_from_this(),
-        newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)),
-               newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
+        newSum(
+            newProduct(fExponent->derive(name), newNaturalLogarithm(fBase)),
+            newProduct(fExponent, newNaturalLogarithm(fBase)->derive(name))));
   }
   return newProduct(
       shared_from_this(),
-      newSum(newProduct(fExponent->derive(), newNaturalLogarithm(fBase)),
-             newProduct(fExponent, newNaturalLogarithm(fBase)->derive())));
+      newSum(newProduct(fExponent->derive(name), newNaturalLogarithm(fBase)),
+             newProduct(fExponent, newNaturalLogarithm(fBase)->derive(name))));
 }
 
-std::shared_ptr<Node> Power::integrate() {
+std::shared_ptr<Node> Power::integrate(const std::string &name) {
   if (isConstant(fExponent)) {
     auto exponent = toConstant(fExponent)->fValue;
     if (exponent == -1) {
@@ -710,14 +719,14 @@ std::shared_ptr<Node> Power::integrate() {
       } else if (isLinear(fBase)) {
         // ∫1/(ax+b) = ln(ax+b)/a
         return newProduct(newNaturalLogarithm(fBase),
-                          newPower(fBase->derive(), newConstant(-1)));
+                          newPower(fBase->derive(name), newConstant(-1)));
       }
     } else if (isLinear(fBase)) {
       // ∫(ax+b)^n = (ax+b)^(n+1)/(a(n+1))
       return newProduct(
           newProduct(newPower(newConstant(exponent + 1.0f), newConstant(-1)),
                      newPower(fBase, newConstant(exponent + 1.0f))),
-          newPower(fBase->derive(), newConstant(-1)));
+          newPower(fBase->derive(name), newConstant(-1)));
     }
   } else if (isVariable(fExponent) && isConstant(fBase)) {
     return newProduct(newPower(fBase, fExponent),
@@ -804,12 +813,14 @@ bool Power::equals(const std::shared_ptr<Node> &other) const {
 }
 
 std::shared_ptr<Node>
-NaturalLogarithm::deriveFunction(const std::shared_ptr<Node> &argument) {
+NaturalLogarithm::deriveFunction(const std::shared_ptr<Node> &argument,
+                                 const std::string &name) {
   return newPower(argument, newConstant(-1.0f));
 }
 
 std::shared_ptr<Node>
-NaturalLogarithm::integrateFunction(const std::shared_ptr<Node> &argument) {
+NaturalLogarithm::integrateFunction(const std::shared_ptr<Node> &argument,
+                                    const std::string &name) {
   return nullptr;
 }
 
@@ -830,13 +841,15 @@ bool NaturalLogarithm::equals(const std::shared_ptr<Node> &other) const {
 
 // Cosine
 std::shared_ptr<Node>
-Cosine::deriveFunction(const std::shared_ptr<Node> &argument) {
+Cosine::deriveFunction(const std::shared_ptr<Node> &argument,
+                       const std::string &name) {
   // cos'(x) = -sin(x)
   return newProduct(newConstant(-1.0f), newSine(argument));
 }
 
 std::shared_ptr<Node>
-Cosine::integrateFunction(const std::shared_ptr<Node> &argument) {
+Cosine::integrateFunction(const std::shared_ptr<Node> &argument,
+                          const std::string &name) {
   // ∫cos(x) = sin(x)
   return newSine(argument);
 }
@@ -856,13 +869,15 @@ bool Cosine::equals(const std::shared_ptr<Node> &other) const {
 
 // Sine
 std::shared_ptr<Node>
-Sine::deriveFunction(const std::shared_ptr<Node> &argument) {
+Sine::deriveFunction(const std::shared_ptr<Node> &argument,
+                     const std::string &name) {
   // sin'(x) = cos(x)
   return newCosine(argument);
 }
 
 std::shared_ptr<Node>
-Sine::integrateFunction(const std::shared_ptr<Node> &argument) {
+Sine::integrateFunction(const std::shared_ptr<Node> &argument,
+                        const std::string &name) {
   // ∫sin(x) = -cos(x)
   return newProduct(newConstant(-1.0f), newCosine(argument));
 }

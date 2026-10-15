@@ -4,8 +4,8 @@
 
 class Node {
 public:
-  virtual std::shared_ptr<Node> derive() = 0;
-  virtual std::shared_ptr<Node> integrate() = 0;
+  virtual std::shared_ptr<Node> derive(const std::string &name = "x") = 0;
+  virtual std::shared_ptr<Node> integrate(const std::string &name = "x") = 0;
   virtual float evaluate(float x) = 0;
   virtual std::shared_ptr<Node> simplify() = 0;
   virtual std::ostream &out(std::ostream &stream) const = 0;
@@ -23,10 +23,14 @@ public:
   NodeRef(const std::shared_ptr<Node> &node) : fRef(node) {}
   NodeRef(float value);
 
-  NodeRef derive() { return NodeRef(fRef->derive()); }
+  NodeRef derive(const std::string &name = "x") {
+    return NodeRef(fRef->derive(name));
+  }
 
-  NodeRef integrate() { return NodeRef(fRef->integrate()); }
-  NodeRef integrate(float from, float to) { 
+  NodeRef integrate(const std::string &name = "x") {
+    return NodeRef(fRef->integrate());
+  }
+  NodeRef integrate(float from, float to, const std::string &name = "x") {
     auto integral = NodeRef(fRef->integrate());
     return integral(to) - integral(from);
   }
@@ -37,15 +41,12 @@ public:
   NodeRef simplifyStep() { return NodeRef(fRef->simplify()); }
 
   NodeRef simplify() {
-    int c = 1;
     auto prev = fRef;
     auto simplified = prev->simplify();
     while (!simplified->equals(prev)) {
       prev = simplified;
       simplified = simplified->simplify();
-      c++;
     }
-    std::cout << "Simplified " << c << " times\n";
     return NodeRef(simplified);
   }
 
@@ -66,7 +67,7 @@ public:
 };
 
 NodeRef constant(float value);
-NodeRef variable();
+NodeRef variable(const std::string &name = "x");
 NodeRef vec(std::initializer_list<NodeRef> elements);
 NodeRef vec2(const NodeRef &, const NodeRef &);
 NodeRef vec3(const NodeRef &, const NodeRef &, const NodeRef &);
@@ -77,6 +78,9 @@ NodeRef cos(const NodeRef &argument);
 NodeRef sin(const NodeRef &argument);
 NodeRef dot(const NodeRef &left, const NodeRef &right);
 
-float newton(const NodeRef function, float estimate);
-float newton(const NodeRef function, float estimate, int rounds);
-NodeRef taylor(NodeRef function, float around, int degree);
+float newton(const NodeRef function, float estimate,
+             const std::string &name = "x");
+float newton(const NodeRef function, float estimate, int rounds,
+             const std::string &name = "x");
+NodeRef taylor(NodeRef function, float around, int degree,
+               const std::string &name = "x");

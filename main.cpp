@@ -297,6 +297,17 @@ int main() {
     std::cout << "∫_2^4f " << f.integrate(2, 4) << "\n";
   }
 
+  {
+    auto y = variable("y");
+
+    std::cout << "x==x " << (x == x) << "\n";
+    std::cout << "x==y " << (x == y) << "\n";
+    std::cout << (2 * x + 2 * x).simplify() << "\n";
+    std::cout << (2 * x + 2 * y).simplify() << "\n";
+    std::cout << ((x ^ 2) + x * y + (y ^ 2)).derive("x").simplify() << "\n";
+    std::cout << ((x ^ 2) + x * y + (y ^ 2)).derive("y").simplify() << "\n";
+  }
+
   // simplificationTests();
   // vectorTests();
   // matrixTests();
