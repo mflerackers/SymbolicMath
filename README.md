@@ -61,7 +61,7 @@ taylor(f, 0, 4);
 
 # Newton root finding
 
-look for a root of 2-x^2 around 1 using a maximum of 10 steps
+to solve x^2 = 2, look for a root of 2-x^2 around 1 using a maximum of 10 steps
 
 ```c++
 auto f = 2 - (x ^ 2);
