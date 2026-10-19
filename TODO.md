@@ -1,4 +1,3 @@
-- Evaluate multidimensional functions
 - Equation solving
 - Factorization
 - Gravity for types, in order to float constants to the top, while heavier operations sink

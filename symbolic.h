@@ -6,12 +6,14 @@ class Node {
 public:
   virtual std::shared_ptr<Node> derive(const std::string &name = "x") = 0;
   virtual std::shared_ptr<Node> integrate(const std::string &name = "x") = 0;
-  virtual float evaluate(float x) = 0;
+  virtual std::shared_ptr<Node> evaluate(float value,
+                                         const std::string &name = "x") = 0;
   virtual std::shared_ptr<Node> simplify() = 0;
   virtual std::ostream &out(std::ostream &stream) const = 0;
   virtual bool equals(const std::shared_ptr<Node> &other) const {
     return false;
   }
+  virtual float toScalar() const { throw std::runtime_error("Not a constant"); }
 };
 
 inline std::ostream &operator<<(std::ostream &stream, Node &node) {
@@ -35,8 +37,12 @@ public:
     return integral(to) - integral(from);
   }
 
-  float evaluate(float x) { return fRef->evaluate(x); }
-  float operator()(float x) { return evaluate(x); }
+  NodeRef evaluate(float value, const std::string &name = "x") {
+    return NodeRef(fRef->evaluate(value, name));
+  }
+  float operator()(float x) { return evaluate(x, "x").toScalar(); }
+
+  float toScalar() const { return fRef->toScalar(); }
 
   NodeRef simplifyStep() { return NodeRef(fRef->simplify()); }
 

@@ -7,10 +7,11 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  float toScalar() const override { return fValue; }
 
   float fValue{0.0f};
 };
@@ -33,7 +34,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -61,7 +62,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -98,7 +99,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -142,7 +143,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -171,7 +172,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -202,7 +203,7 @@ public:
 
   std::shared_ptr<Node> derive(const std::string &name) override;
   std::shared_ptr<Node> integrate(const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -270,7 +271,7 @@ public:
                                        const std::string &name) override;
   std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
                                           const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -291,7 +292,7 @@ public:
                                        const std::string &name) override;
   std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
                                           const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
@@ -318,7 +319,7 @@ public:
                                        const std::string &name) override;
   std::shared_ptr<Node> integrateFunction(const std::shared_ptr<Node> &argument,
                                           const std::string &name) override;
-  float evaluate(float x) override;
+  std::shared_ptr<Node> evaluate(float value, const std::string &name) override;
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;

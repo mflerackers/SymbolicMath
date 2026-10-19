@@ -306,6 +306,10 @@ int main() {
     std::cout << (2 * x + 2 * y).simplify() << "\n";
     std::cout << ((x ^ 2) + x * y + (y ^ 2)).derive("x").simplify() << "\n";
     std::cout << ((x ^ 2) + x * y + (y ^ 2)).derive("y").simplify() << "\n";
+    std::cout << (2 * x + 2 * y).evaluate(5, "x").simplify() << "\n";
+    std::cout << (2 * x + 2 * y).evaluate(5, "y").simplify() << "\n";
+    std::cout << (2 * x + 2 * y).evaluate(5, "x").evaluate(5, "y").simplify()
+              << "\n";
   }
 
   // simplificationTests();

@@ -194,7 +194,9 @@ std::shared_ptr<Node> Constant::integrate(const std::string &name) {
   return newProduct(shared_from_this(), newVariable(name));
 }
 
-float Constant::evaluate(float x) { return fValue; }
+std::shared_ptr<Node> Constant::evaluate(float value, const std::string &name) {
+  return shared_from_this();
+}
 
 std::shared_ptr<Node> Constant::simplify() { return shared_from_this(); }
 
@@ -204,7 +206,7 @@ std::ostream &Constant::out(std::ostream &stream) const {
 }
 
 bool Constant::equals(const std::shared_ptr<Node> &other) const {
-  auto constant = toConstant(other);
+  auto constant = ::toConstant(other);
   return constant && constant->fValue == fValue;
 }
 
@@ -220,7 +222,10 @@ std::shared_ptr<Node> Variable::integrate(const std::string &name) {
                     newPower(shared_from_this(), newConstant(2)));
 }
 
-float Variable::evaluate(float x) { return x; }
+std::shared_ptr<Node> Variable::evaluate(float value, const std::string &name) {
+  return name == fName ? std::dynamic_pointer_cast<Node>(newConstant(value))
+                       : shared_from_this();
+}
 
 std::shared_ptr<Node> Variable::simplify() { return shared_from_this(); }
 
@@ -256,7 +261,13 @@ std::shared_ptr<Node> Vector::integrate(const std::string &name) {
   return newVector(std::move(s));
 }
 
-float Vector::evaluate(float x) { return 0.0f; }
+std::shared_ptr<Node> Vector::evaluate(float value, const std::string &name) {
+  std::vector<std::shared_ptr<Node>> s;
+  s.resize(elements.size());
+  std::transform(elements.begin(), elements.end(), s.begin(),
+                 [&name, &value](auto &e) { return e->evaluate(value, name); });
+  return newVector(std::move(s));
+}
 
 std::shared_ptr<Node> Vector::simplify() {
   std::vector<std::shared_ptr<Node>> s;
@@ -313,7 +324,13 @@ std::shared_ptr<Node> Matrix::integrate(const std::string &name) {
   return newMatrix(rows, columns, std::move(s));
 }
 
-float Matrix::evaluate(float x) { return 0.0f; }
+std::shared_ptr<Node> Matrix::evaluate(float value, const std::string &name) {
+  std::vector<std::shared_ptr<Node>> s;
+  s.resize(elements.size());
+  std::transform(elements.begin(), elements.end(), s.begin(),
+                 [&name, &value](auto &e) { return e->evaluate(value, name); });
+  return newMatrix(rows, columns, std::move(s));
+}
 
 std::shared_ptr<Node> Matrix::simplify() {
   std::vector<std::shared_ptr<Node>> s;
@@ -377,8 +394,13 @@ std::shared_ptr<Node> Sum::integrate(const std::string &name) {
   return newSum(fLeft->integrate(name), fRight->integrate(name));
 }
 
-float Sum::evaluate(float x) {
-  return fLeft->evaluate(x) + fRight->evaluate(x);
+std::shared_ptr<Node> Sum::evaluate(float value, const std::string &name) {
+  auto left = fLeft->evaluate(value, name);
+  auto right = fRight->evaluate(value, name);
+  return isConstant(left) && isConstant(right)
+             ? std::dynamic_pointer_cast<Node>(newConstant(
+                   toConstant(left)->fValue + toConstant(right)->fValue))
+             : std::dynamic_pointer_cast<Node>(newSum(left, right));
 }
 
 std::shared_ptr<Node> Sum::simplify() {
@@ -521,8 +543,13 @@ std::shared_ptr<Node> Product::integrate(const std::string &name) {
       ->simplify();
 }
 
-float Product::evaluate(float x) {
-  return fLeft->evaluate(x) * fRight->evaluate(x);
+std::shared_ptr<Node> Product::evaluate(float value, const std::string &name) {
+  auto left = fLeft->evaluate(value, name);
+  auto right = fRight->evaluate(value, name);
+  return isConstant(left) && isConstant(right)
+             ? std::dynamic_pointer_cast<Node>(newConstant(
+                   toConstant(left)->fValue * toConstant(right)->fValue))
+             : std::dynamic_pointer_cast<Node>(newProduct(left, right));
 }
 
 std::shared_ptr<Node> Product::simplify() {
@@ -736,8 +763,13 @@ std::shared_ptr<Node> Power::integrate(const std::string &name) {
   return nullptr;
 }
 
-float Power::evaluate(float x) {
-  return powf(fBase->evaluate(x), fExponent->evaluate(x));
+std::shared_ptr<Node> Power::evaluate(float value, const std::string &name) {
+  auto base = fBase->evaluate(value, name);
+  auto exponent = fExponent->evaluate(value, name);
+  return isConstant(base) && isConstant(exponent)
+             ? std::dynamic_pointer_cast<Node>(newConstant(powf(
+                   toConstant(base)->fValue, toConstant(exponent)->fValue)))
+             : std::dynamic_pointer_cast<Node>(newPower(base, exponent));
 }
 
 bool isEven(float value) {
@@ -824,7 +856,14 @@ NaturalLogarithm::integrateFunction(const std::shared_ptr<Node> &argument,
   return nullptr;
 }
 
-float NaturalLogarithm::evaluate(float x) { return log(x); }
+std::shared_ptr<Node> NaturalLogarithm::evaluate(float value,
+                                                 const std::string &name) {
+  auto argument = fArgument->evaluate(value, name);
+  return isConstant(argument)
+             ? std::dynamic_pointer_cast<Node>(
+                   newConstant(log(toConstant(argument)->fValue)))
+             : std::dynamic_pointer_cast<Node>(newNaturalLogarithm(argument));
+}
 
 std::shared_ptr<Node> NaturalLogarithm::simplify() {
   return shared_from_this();
@@ -854,7 +893,13 @@ Cosine::integrateFunction(const std::shared_ptr<Node> &argument,
   return newSine(argument);
 }
 
-float Cosine::evaluate(float x) { return cosf(fArgument->evaluate(x)); }
+std::shared_ptr<Node> Cosine::evaluate(float value, const std::string &name) {
+  auto argument = fArgument->evaluate(value, name);
+  return isConstant(argument)
+             ? std::dynamic_pointer_cast<Node>(
+                   newConstant(cosf(toConstant(argument)->fValue)))
+             : std::dynamic_pointer_cast<Node>(newCosine(argument));
+}
 
 std::shared_ptr<Node> Cosine::simplify() { return shared_from_this(); }
 
@@ -882,7 +927,13 @@ Sine::integrateFunction(const std::shared_ptr<Node> &argument,
   return newProduct(newConstant(-1.0f), newCosine(argument));
 }
 
-float Sine::evaluate(float x) { return sinf(fArgument->evaluate(x)); }
+std::shared_ptr<Node> Sine::evaluate(float value, const std::string &name) {
+  auto argument = fArgument->evaluate(value, name);
+  return isConstant(argument)
+             ? std::dynamic_pointer_cast<Node>(
+                   newConstant(sinf(toConstant(argument)->fValue)))
+             : std::dynamic_pointer_cast<Node>(newSine(argument));
+}
 
 std::shared_ptr<Node> Sine::simplify() { return shared_from_this(); }
 
