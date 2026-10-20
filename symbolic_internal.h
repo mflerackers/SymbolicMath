@@ -12,6 +12,7 @@ public:
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
   float toScalar() const override { return fValue; }
+  void getVariables(std::set<std::string> &variables) const override;
 
   float fValue{0.0f};
 };
@@ -38,6 +39,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
 private:
   std::string fName;
@@ -66,6 +68,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   size_t getDimension() const { return elements.size(); };
 
@@ -103,6 +106,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   std::shared_ptr<Vector> getRow(size_t index);
   std::shared_ptr<Vector> getColumn(size_t index);
@@ -147,6 +151,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   std::shared_ptr<Node> fLeft;
   std::shared_ptr<Node> fRight;
@@ -176,6 +181,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   std::shared_ptr<Node> fLeft;
   std::shared_ptr<Node> fRight;
@@ -207,6 +213,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   std::shared_ptr<Node> fBase;
   std::shared_ptr<Node> fExponent;
@@ -275,6 +282,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 
   std::shared_ptr<Node> fArgument;
 };
@@ -296,6 +304,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 };
 
 inline std::shared_ptr<Cosine>
@@ -323,6 +332,7 @@ public:
   std::shared_ptr<Node> simplify() override;
   std::ostream &out(std::ostream &stream) const override;
   bool equals(const std::shared_ptr<Node> &other) const override;
+  void getVariables(std::set<std::string> &variables) const override;
 };
 
 inline std::shared_ptr<Sine> newSine(const std::shared_ptr<Node> &argument) {

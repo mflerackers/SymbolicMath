@@ -147,7 +147,7 @@ NodeRef dot(const NodeRef &left, const NodeRef &right) {
 }
 
 // Does one single Newton step
-float newton(NodeRef function, float estimate, const std::string &name) {
+float newtonStep(NodeRef function, float estimate, const std::string &name) {
   return estimate - function(estimate) / function.derive(name)(estimate);
 }
 
@@ -177,6 +177,45 @@ NodeRef taylor(NodeRef function, float around, int degree,
     derivative = derivative.derive(name);
   }
   return series.simplify();
+}
+
+NodeRef jacobian(NodeRef vectorMaybe) {
+  auto vector = toVector(vectorMaybe.fRef);
+  if (!vector) {
+    throw std::runtime_error("jacobian needs a function from R^n -> R^n");
+  }
+  std::set<std::string> varSet;
+  vector->getVariables(varSet);
+  std::vector<std::string> varArray(varSet.begin(), varSet.end());
+  int functionCount = vector->getDimension();
+  int variableCount = varSet.size();
+  std::vector<std::shared_ptr<Node>> elements;
+  for (int functionIndex = 0; functionIndex < functionCount; functionIndex++) {
+    for (int partialDerivativeIndex = 0; partialDerivativeIndex < variableCount;
+         partialDerivativeIndex++) {
+      // Take the j-th partial derivative of the i-th function
+      auto f = vector->elements[functionIndex]->derive(
+          varArray[partialDerivativeIndex]);
+      elements.push_back(NodeRef(f).simplify().fRef);
+    }
+  }
+  return NodeRef(newMatrix(functionCount, variableCount, std::move(elements)));
+}
+
+NodeRef hessian(NodeRef function) {
+  std::set<std::string> varSet = function.getVariables();
+  std::vector<std::string> varArray(varSet.begin(), varSet.end());
+  int variableCount = varSet.size();
+  std::vector<std::shared_ptr<Node>> elements;
+  for (int i = 0; i < variableCount; i++) {
+    auto f1 = function.derive(varArray[i]);
+    for (int j = 0; j < variableCount; j++) {
+      // Take the j-th partial derivative of the i-th function
+      auto f2 = f1.derive(varArray[j]);
+      elements.push_back(f2.simplify().fRef);
+    }
+  }
+  return NodeRef(newMatrix(variableCount, variableCount, std::move(elements)));
 }
 
 // Constant
@@ -210,6 +249,8 @@ bool Constant::equals(const std::shared_ptr<Node> &other) const {
   return constant && constant->fValue == fValue;
 }
 
+void Constant::getVariables(std::set<std::string> &variables) const {}
+
 // Variable
 // The derivative of a variable is one
 std::shared_ptr<Node> Variable::derive(const std::string &name) {
@@ -237,6 +278,10 @@ std::ostream &Variable::out(std::ostream &stream) const {
 bool Variable::equals(const std::shared_ptr<Node> &other) const {
   auto variable = toVariable(other);
   return variable != nullptr && fName == variable->fName;
+}
+
+void Variable::getVariables(std::set<std::string> &variables) const {
+  variables.insert(fName);
 }
 
 // Vector
@@ -297,6 +342,12 @@ bool Vector::equals(const std::shared_ptr<Node> &other) const {
   return vector && vector->getDimension() == getDimension() &&
          std::equal(elements.begin(), elements.end(), vector->elements.begin(),
                     [](auto &a, auto &b) { return a->equals(b); });
+}
+
+void Vector::getVariables(std::set<std::string> &variables) const {
+  for (auto &node : elements) {
+    node->getVariables(variables);
+  }
 }
 
 // Matrix
@@ -366,6 +417,12 @@ bool Matrix::equals(const std::shared_ptr<Node> &other) const {
          matrix->getColumns() == getColumns() &&
          std::equal(elements.begin(), elements.end(), matrix->elements.begin(),
                     [](auto &a, auto &b) { return a->equals(b); });
+}
+
+void Matrix::getVariables(std::set<std::string> &variables) const {
+  for (auto &node : elements) {
+    node->getVariables(variables);
+  }
 }
 
 std::shared_ptr<Vector> Matrix::getRow(size_t index) {
@@ -520,6 +577,11 @@ bool Sum::equals(const std::shared_ptr<Node> &other) const {
            sum->fRight->equals(fRight))); //||
                                           //(sum->fLeft->equals(fRight) &&
                                           // sum->fRight->equals(fLeft)));
+}
+
+void Sum::getVariables(std::set<std::string> &variables) const {
+  fLeft->getVariables(variables);
+  fRight->getVariables(variables);
 }
 
 // Product
@@ -697,6 +759,11 @@ bool Product::equals(const std::shared_ptr<Node> &other) const {
 (product->fLeft->equals(fRight) && product->fRight->equals(fLeft)));*/
 }
 
+void Product::getVariables(std::set<std::string> &variables) const {
+  fLeft->getVariables(variables);
+  fRight->getVariables(variables);
+}
+
 // Function
 std::shared_ptr<Node> Function::derive(const std::string &name) {
   return newProduct(deriveFunction(fArgument, name), fArgument->derive(name));
@@ -844,6 +911,11 @@ bool Power::equals(const std::shared_ptr<Node> &other) const {
          power->fExponent->equals(fExponent);
 }
 
+void Power::getVariables(std::set<std::string> &variables) const {
+  fBase->getVariables(variables);
+  fExponent->getVariables(variables);
+}
+
 std::shared_ptr<Node>
 NaturalLogarithm::deriveFunction(const std::shared_ptr<Node> &argument,
                                  const std::string &name) {
@@ -876,6 +948,10 @@ std::ostream &NaturalLogarithm::out(std::ostream &stream) const {
 
 bool NaturalLogarithm::equals(const std::shared_ptr<Node> &other) const {
   return equalsHelper<NaturalLogarithm>(other);
+}
+
+void NaturalLogarithm::getVariables(std::set<std::string> &variables) const {
+  fArgument->getVariables(variables);
 }
 
 // Cosine
@@ -912,6 +988,10 @@ bool Cosine::equals(const std::shared_ptr<Node> &other) const {
   return equalsHelper<Cosine>(other);
 }
 
+void Cosine::getVariables(std::set<std::string> &variables) const {
+  fArgument->getVariables(variables);
+}
+
 // Sine
 std::shared_ptr<Node>
 Sine::deriveFunction(const std::shared_ptr<Node> &argument,
@@ -944,6 +1024,10 @@ std::ostream &Sine::out(std::ostream &stream) const {
 
 bool Sine::equals(const std::shared_ptr<Node> &other) const {
   return equalsHelper<Sine>(other);
+}
+
+void Sine::getVariables(std::set<std::string> &variables) const {
+  fArgument->getVariables(variables);
 }
 
 std::shared_ptr<Node> newDot(const std::shared_ptr<Node> &left,

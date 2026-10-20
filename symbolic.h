@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <memory>
+#include <set>
 
 class Node {
 public:
@@ -13,7 +14,8 @@ public:
   virtual bool equals(const std::shared_ptr<Node> &other) const {
     return false;
   }
-  virtual float toScalar() const { throw std::runtime_error("Not a constant"); }
+  virtual float toScalar() const { throw std::runtime_error("Not a scalar"); }
+  virtual void getVariables(std::set<std::string> &variables) const = 0;
 };
 
 inline std::ostream &operator<<(std::ostream &stream, Node &node) {
@@ -56,6 +58,12 @@ public:
     return NodeRef(simplified);
   }
 
+  std::set<std::string> getVariables() {
+    std::set<std::string> vars;
+    fRef->getVariables(vars);
+    return vars;
+  }
+
   friend NodeRef operator-(const NodeRef &argument);
   friend NodeRef operator+(const NodeRef &left, const NodeRef &right);
   friend NodeRef operator-(const NodeRef &left, const NodeRef &right);
@@ -84,9 +92,11 @@ NodeRef cos(const NodeRef &argument);
 NodeRef sin(const NodeRef &argument);
 NodeRef dot(const NodeRef &left, const NodeRef &right);
 
-float newton(const NodeRef function, float estimate,
-             const std::string &name = "x");
+float newtonStep(const NodeRef function, float estimate,
+                 const std::string &name = "x");
 float newton(const NodeRef function, float estimate, int rounds,
              const std::string &name = "x");
 NodeRef taylor(NodeRef function, float around, int degree,
                const std::string &name = "x");
+NodeRef jacobian(NodeRef vector);
+NodeRef hessian(NodeRef function);

@@ -5,4 +5,4 @@
 - Option to preserve fractions (1/4 instead of 0.25)
 - Laplace transform
 - Curvature
-- Jacobian matrix
+- Determinant

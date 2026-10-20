@@ -310,6 +310,23 @@ int main() {
     std::cout << (2 * x + 2 * y).evaluate(5, "y").simplify() << "\n";
     std::cout << (2 * x + 2 * y).evaluate(5, "x").evaluate(5, "y").simplify()
               << "\n";
+    std::set<std::string> vars = (2 * x + 2 * y).getVariables();
+    bool first = true;
+    for (auto &v : vars) {
+      if (first) {
+        first = false;
+      } else {
+        std::cout << ",";
+      }
+      std::cout << v;
+    }
+    std::cout << "\n";
+
+    auto z = variable("z");
+    std::cout << jacobian(vec2((((2 * x) ^ 2) * y), 2 * x)) << "\n";
+    std::cout << jacobian(vec2((((2 * x) ^ 2) * y), 2 * x * z)) << "\n";
+    std::cout << jacobian(vec3((((2 * x) ^ 2) * y), 2 * x, z)) << "\n";
+    std::cout << hessian(((2 * x) ^ 2) * y) << "\n";
   }
 
   // simplificationTests();
