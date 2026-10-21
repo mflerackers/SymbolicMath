@@ -324,9 +324,13 @@ int main() {
 
     auto z = variable("z");
     std::cout << jacobian(vec2((((2 * x) ^ 2) * y), 2 * x)) << "\n";
+    std::cout << determinant(jacobian(vec3((((2 * x) ^ 2) * y), 2 * x, z)))
+              << "\n";
     std::cout << jacobian(vec2((((2 * x) ^ 2) * y), 2 * x * z)) << "\n";
     std::cout << jacobian(vec3((((2 * x) ^ 2) * y), 2 * x, z)) << "\n";
-    std::cout << hessian(((2 * x) ^ 2) * y) << "\n";
+    std::cout << hessian(2 * (x ^ 2) * y) << "\n";
+    std::cout << determinant(hessian(2 * (x ^ 2) * y)) << "\n";
+    std::cout << ((4 * x) * (4 * x)).simplify() << "\n";
   }
 
   // simplificationTests();

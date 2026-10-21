@@ -100,3 +100,4 @@ NodeRef taylor(NodeRef function, float around, int degree,
                const std::string &name = "x");
 NodeRef jacobian(NodeRef vector);
 NodeRef hessian(NodeRef function);
+NodeRef determinant(NodeRef matrix);

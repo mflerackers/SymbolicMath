@@ -218,6 +218,14 @@ NodeRef hessian(NodeRef function) {
   return NodeRef(newMatrix(variableCount, variableCount, std::move(elements)));
 }
 
+NodeRef determinant(NodeRef matrixMaybe) {
+  auto matrix = toMatrix(matrixMaybe.fRef);
+  if (!matrix) {
+    throw std::runtime_error("determinant needs a square matrix");
+  }
+  return NodeRef(matrix->determinant()).simplify();
+}
+
 // Constant
 /*
         The derivative of a constant is zero
@@ -422,6 +430,34 @@ bool Matrix::equals(const std::shared_ptr<Node> &other) const {
 void Matrix::getVariables(std::set<std::string> &variables) const {
   for (auto &node : elements) {
     node->getVariables(variables);
+  }
+}
+
+std::shared_ptr<Node> Matrix::determinant() const {
+  if (rows != columns) {
+    throw std::runtime_error(
+        "Can't calculate the determinant of a non-square matrix");
+  }
+  switch (rows) {
+  case 1:
+    return elements[0];
+  case 2:
+    return newDifference(newProduct(elements[0], elements[3]),
+                         newProduct(elements[1], elements[2]));
+  case 3:
+    return newSum(
+        newDifference(
+            newProduct(elements[0],
+                       newDifference(newProduct(elements[4], elements[8]),
+                                     newProduct(elements[5], elements[7]))),
+            newProduct(elements[1],
+                       newDifference(newProduct(elements[3], elements[8]),
+                                     newProduct(elements[6], elements[5])))),
+        newProduct(elements[1],
+                   newDifference(newProduct(elements[3], elements[7]),
+                                 newProduct(elements[4], elements[6]))));
+  default:
+    throw std::runtime_error("NYI");
   }
 }
 
@@ -645,10 +681,6 @@ std::shared_ptr<Node> Product::simplify() {
       }
     }
   }
-  if (fLeft->equals(fRight)) {
-    // (x * x) = x ^ 2
-    return newPower(fLeft, newConstant(2.0f));
-  }
   if (isProduct(fLeft) && isProduct(fRight)) {
     auto productLeft = toProduct(fLeft);
     auto productRight = toProduct(fRight);
@@ -659,6 +691,10 @@ std::shared_ptr<Node> Product::simplify() {
       return newProduct(newConstant(left->fValue * right->fValue),
                         newProduct(productLeft->fRight, productRight->fRight));
     }
+  }
+  if (fLeft->equals(fRight)) {
+    // (x * x) = x ^ 2
+    return newPower(fLeft, newConstant(2.0f));
   }
   if (isProduct(fLeft)) {
     auto productLeft = toProduct(fLeft);
@@ -856,6 +892,11 @@ std::shared_ptr<Node> Power::simplify() {
       // n ^ m = p
       auto base = toConstant(fBase);
       return newConstant(powf(base->fValue, exponent->fValue));
+    } else if (isProduct(fBase) && isConstant(toProduct(fBase)->fLeft)) {
+      auto product = toProduct(fBase);
+      return newProduct(newConstant(powf(toConstant(product->fLeft)->fValue,
+                                         exponent->fValue)),
+                        newPower(product->fRight, fExponent));
     } else if (isEven(exponent->fValue) && isProduct(fBase)) {
       auto product = toProduct(fBase);
       if (isConstant(product->fLeft)) {

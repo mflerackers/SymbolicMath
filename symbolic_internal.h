@@ -108,6 +108,8 @@ public:
   bool equals(const std::shared_ptr<Node> &other) const override;
   void getVariables(std::set<std::string> &variables) const override;
 
+  std::shared_ptr<Node> determinant() const;
+
   std::shared_ptr<Vector> getRow(size_t index);
   std::shared_ptr<Vector> getColumn(size_t index);
 
@@ -192,6 +194,11 @@ inline std::shared_ptr<Product> newProduct(const std::shared_ptr<Node> &left,
   return std::make_shared<Product>(left, right);
 }
 
+inline std::shared_ptr<Sum> newDifference(const std::shared_ptr<Node> &left,
+                                          const std::shared_ptr<Node> &right) {
+  return std::make_shared<Sum>(left, newProduct(newConstant(-1), right));
+}
+
 inline Product *toProduct(const std::shared_ptr<Node> &node) {
   return dynamic_cast<Product *>(node.get());
 }
@@ -222,6 +229,12 @@ public:
 inline std::shared_ptr<Power> newPower(const std::shared_ptr<Node> &base,
                                        const std::shared_ptr<Node> &exponent) {
   return std::make_shared<Power>(base, exponent);
+}
+
+inline std::shared_ptr<Product>
+newDivision(const std::shared_ptr<Node> &left,
+            const std::shared_ptr<Node> &right) {
+  return std::make_shared<Product>(left, newPower(right, newConstant(-1)));
 }
 
 inline Power *toPower(const std::shared_ptr<Node> &node) {
