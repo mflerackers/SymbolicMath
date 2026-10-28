@@ -108,6 +108,7 @@ public:
   bool equals(const std::shared_ptr<Node> &other) const override;
   void getVariables(std::set<std::string> &variables) const override;
 
+  std::shared_ptr<Node> trace() const;
   std::shared_ptr<Node> determinant() const;
 
   std::shared_ptr<Vector> getRow(size_t index);
@@ -194,9 +195,13 @@ inline std::shared_ptr<Product> newProduct(const std::shared_ptr<Node> &left,
   return std::make_shared<Product>(left, right);
 }
 
+inline std::shared_ptr<Product> newNegation(const std::shared_ptr<Node> &node) {
+  return newProduct(newConstant(-1), node);
+}
+
 inline std::shared_ptr<Sum> newDifference(const std::shared_ptr<Node> &left,
                                           const std::shared_ptr<Node> &right) {
-  return std::make_shared<Sum>(left, newProduct(newConstant(-1), right));
+  return newSum(left, newNegation(right));
 }
 
 inline Product *toProduct(const std::shared_ptr<Node> &node) {
@@ -364,25 +369,26 @@ std::shared_ptr<Node> newDot(const std::shared_ptr<Node> &left,
                              const std::shared_ptr<Node> &right);
 
 bool isLinear(const std::shared_ptr<Node> &node) {
-  auto prev = node;
-  auto simplified = node->simplify();
-  while (!simplified->equals(prev)) {
-    prev = simplified;
-    simplified = simplified->simplify();
-  }
-
-  if (isVariable(node)) {
+  if (isConstant(node)) {
+    return true;
+  } else if (isVariable(node)) {
     return true;
   } else if (isProduct(node)) {
     auto product = toProduct(node);
-    if (isConstant(product->fLeft) && isVariable(product->fRight)) {
+    if (isLinear(product->fLeft) && isLinear(product->fRight)) {
       return true;
     }
   } else if (isSum(node)) {
     auto product = toSum(node);
-    if (isConstant(product->fLeft) && isLinear(product->fRight)) {
+    if (isLinear(product->fLeft) && isLinear(product->fRight)) {
+      return true;
+    }
+  } else if (isPower(node)) {
+    auto power = toPower(node);
+    if (isLinear(power->fBase) && isConstant(power->fExponent)) {
       return true;
     }
   }
+  std::cout << *node << "\n";
   return false;
 }

@@ -226,6 +226,38 @@ NodeRef determinant(NodeRef matrixMaybe) {
   return NodeRef(matrix->determinant()).simplify();
 }
 
+NodeRef characteristicPolynomial(NodeRef matrixMaybe, NodeRef t) {
+  auto matrix = toMatrix(matrixMaybe.fRef);
+  if (!matrix || matrix->rows != matrix->columns) {
+    throw std::runtime_error("characteristicPolynomial needs a square matrix");
+  }
+  // Alternatively, for a 2x2, det(A)-trace(A)t+t^2
+  // Alternatively, for a 3x3, -det(A)+(aii*ajj-aij*aji)t-trace(A)t^2+t^3
+  // A-tI
+  std::vector<std::shared_ptr<Node>> elements;
+  for (int i = 0; i < matrix->rows; i++) {
+    for (int j = 0; j < matrix->columns; j++) {
+      if (i == j) {
+        elements.push_back(
+            newDifference(matrix->elements[i + j * matrix->columns], t.fRef));
+      } else {
+        elements.push_back(
+            newNegation(matrix->elements[i + j * matrix->columns]));
+      }
+    }
+  }
+  // det(A-tI)
+  return determinant(
+      NodeRef(newMatrix(matrix->rows, matrix->columns, std::move(elements))));
+}
+
+NodeRef solve(NodeRef polynomial) {
+  if (!isLinear(polynomial.fRef)) {
+    throw std::runtime_error("solve only works with polynomials");
+  }
+  return polynomial;
+}
+
 // Constant
 /*
         The derivative of a constant is zero
@@ -433,6 +465,21 @@ void Matrix::getVariables(std::set<std::string> &variables) const {
   }
 }
 
+// Sum of the eigenvalues
+std::shared_ptr<Node> Matrix::trace() const {
+  if (rows != columns) {
+    throw std::runtime_error(
+        "Can't calculate the trace of a non-square matrix");
+  }
+  size_t last = rows - 1;
+  auto trace = elements[last * columns + last];
+  for (size_t i = last - 1; i >= 0; i--) {
+    trace = newSum(elements[i * columns + i], trace);
+  }
+  return trace;
+}
+
+// Product of the eigenvalues
 std::shared_ptr<Node> Matrix::determinant() const {
   if (rows != columns) {
     throw std::runtime_error(
@@ -513,9 +560,20 @@ std::shared_ptr<Node> Sum::simplify() {
       // 0 + n = n
       return fRight->simplify();
     }
+    if (isSum(fRight)) {
+      auto rightSum = toSum(fRight);
+      // Associativity
+      // n + (m + x) = (n + m) + x
+      if (isConstant(rightSum->fLeft)) {
+        return newSum(
+            newConstant(left->fValue + toConstant(rightSum->fLeft)->fValue),
+            rightSum->fRight);
+      }
+    }
   }
   if (fLeft->equals(fRight)) {
-    // x + x = 2 * x
+    // Distributivity
+    // x + x = (1 * x) + (1 * x) = (1 + 1) * x =  2 * x
     return newProduct(newConstant(2.0f), fLeft->simplify());
   }
   if (isProduct(fLeft) && isProduct(fRight)) {
@@ -523,6 +581,7 @@ std::shared_ptr<Node> Sum::simplify() {
     auto right = toProduct(fRight);
     if (isConstant(left->fLeft) && isConstant(right->fLeft) &&
         left->fRight->equals(right->fRight)) {
+      // Distributivity
       // (n * x) + (m * x) = (n + m) * x
       return newProduct(newConstant(toConstant(left->fLeft)->fValue +
                                     toConstant(right->fLeft)->fValue),
@@ -530,11 +589,23 @@ std::shared_ptr<Node> Sum::simplify() {
     }
   }
   if (isProduct(fLeft)) {
-    auto left = toProduct(fLeft);
-    // (n * x) + x = (n + 1) * x
-    if (isConstant(left->fLeft) && left->fRight->equals(fRight)) {
-      return newProduct(newConstant(toConstant(left->fLeft)->fValue + 1),
+    auto leftProduct = toProduct(fLeft);
+    // Distributivity
+    // (n * x) + x = (n * x) + (1 * x) = (n + 1) * x
+    if (isConstant(leftProduct->fLeft) && leftProduct->fRight->equals(fRight)) {
+      return newProduct(newConstant(toConstant(leftProduct->fLeft)->fValue + 1),
                         fRight);
+    }
+    // Associativity
+    // (n * x) + (m * x + y) = (n * x + m * x) + y
+    if (isSum(fRight)) {
+      auto rightSum = toSum(fRight);
+      if (isProduct(rightSum->fLeft)) {
+        auto rightProduct = toProduct(rightSum->fLeft);
+        if (leftProduct->fRight->equals(rightProduct->fRight)) {
+          return newSum(newSum(fLeft, rightSum->fLeft), rightSum->fRight);
+        }
+      }
     }
   }
   if (isProduct(fRight)) {
@@ -680,6 +751,25 @@ std::shared_ptr<Node> Product::simplify() {
                           product->fRight);
       }
     }
+  }
+  if (isSum(fLeft) && (isConstant(fRight) || isVariable(fRight))) {
+    auto sum = toSum(fLeft);
+    return newSum(newProduct(sum->fLeft, fRight),
+                  newProduct(sum->fRight, fRight));
+  }
+  if (isSum(fLeft) && isSum(fRight)) {
+    auto sumLeft = toSum(fLeft);
+    auto sumRight = toSum(fRight);
+    return newSum(
+        newProduct(sumLeft->fLeft, sumRight->fLeft),
+        newSum(newProduct(sumLeft->fLeft, sumRight->fRight),
+               newSum(newProduct(sumLeft->fRight, sumRight->fLeft),
+                      newProduct(sumLeft->fRight, sumRight->fRight))));
+  }
+  if (isSum(fRight) && (isConstant(fLeft) || isVariable(fLeft))) {
+    auto sum = toSum(fRight);
+    return newSum(newProduct(fLeft, sum->fLeft),
+                  newProduct(fLeft, sum->fRight));
   }
   if (isProduct(fLeft) && isProduct(fRight)) {
     auto productLeft = toProduct(fLeft);

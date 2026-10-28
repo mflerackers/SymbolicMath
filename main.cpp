@@ -333,6 +333,24 @@ int main() {
     std::cout << ((4 * x) * (4 * x)).simplify() << "\n";
   }
 
+  {
+    auto poly =
+        characteristicPolynomial(matrix({vec({constant(2), constant(1)}),
+                                         vec({constant(-1), constant(0)})}),
+                                 x);
+    std::cout << poly << "\n";
+    solve(poly);
+  }
+
+  {
+    auto poly =
+        characteristicPolynomial(matrix({vec({constant(5), constant(2)}),
+                                         vec({constant(2), constant(1)})}),
+                                 x);
+    std::cout << poly << "\n";
+    solve(poly);
+  }
+
   // simplificationTests();
   // vectorTests();
   // matrixTests();

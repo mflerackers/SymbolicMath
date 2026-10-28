@@ -1,7 +1,17 @@
 - Equation solving
 - Factorization
 - Gravity for types, in order to float constants to the top, while heavier operations sink
+    - Constant, Variable always left in a Sum or Product
 - ^ operator precedence is wrong for being power operator so it currently needs parentheses
 - Option to preserve fractions (1/4 instead of 0.25)
 - Laplace transform
 - Curvature
+- Use the characteristic polynomial to obtain eigenvalues
+- Use the characteristic polynomial to obtain eigenvectors
+- Simplify simplification, either:
+	- Make sum and product use a list instead of left/right
+        - Pros: sorting a list by gravity is faster than using associativity
+        - Cons: deriving a product would be less straighforward as it stops being just recursing nodes, you'd get front/tail instead of left/right, and cut up the product list
+  	- Simplify or generalize rules
+  	    - For example, (a+b)(a-b) can use the left distributive rule a(a-b)+b(a-b), then the right distributive rule a^2-ab+ba-b^2, instead of having a rule specifically to one-shot it to a^2-ab+ba-b^2
+  	- Encode rules, and generate code using metaprogramming or preprocessor

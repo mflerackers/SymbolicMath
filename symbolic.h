@@ -101,3 +101,5 @@ NodeRef taylor(NodeRef function, float around, int degree,
 NodeRef jacobian(NodeRef vector);
 NodeRef hessian(NodeRef function);
 NodeRef determinant(NodeRef matrix);
+NodeRef characteristicPolynomial(NodeRef matrix, NodeRef variable);
+NodeRef solve(NodeRef polynomial);
